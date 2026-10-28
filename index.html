@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Caja</title>
+<style>
+:root{
+  --bg:#f3eee4; --card:#fff; --ink:#1a1a1a; --mute:#5c5c5c; --line:#d6cfc0;
+  --green:#1b8a3a; --green-d:#13692b; --red:#c62828; --blue:#1558b0; --amber:#e65100;
+  --r:14px; --btn:clamp(44px,6.6vh,72px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font:20px/1.3 system-ui,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;overflow:hidden}
+input{-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;cursor:pointer;border:0;border-radius:var(--r);touch-action:manipulation}
+button:active{transform:scale(.97);filter:brightness(.92)}
+h1,h2,h3,p{margin:0}
+#root{display:flex;flex-direction:column;height:100%}
+
+/* barra superior */
+.tabs{display:flex;gap:8px;padding:8px 10px;background:#222;align-items:center;flex:none}
+.tab{flex:1;max-width:240px;height:60px;background:#444;color:#fff;font-weight:700;font-size:22px;position:relative}
+.tab.on{background:var(--green);box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}
+.tab .badge{position:absolute;top:4px;right:6px;background:var(--amber);color:#fff;border-radius:99px;font-size:16px;padding:0 8px;line-height:24px}
+.clock{margin-left:auto;color:#ddd;text-align:right;font-size:18px;line-height:1.15;padding-right:6px}
+.clock b{font-size:26px;color:#fff;display:block}
+#app{flex:1;min-height:0;display:flex}
+.page{flex:1;overflow:auto;padding:14px 16px 30px}
+
+/* botones */
+.btn{min-height:var(--btn);padding:0 22px;font-weight:700;background:#e4ddcc;border:2px solid #c9c0aa}
+.btn.ok{background:var(--green);color:#fff;border-color:var(--green-d)}
+.btn.bad{background:var(--red);color:#fff;border-color:#8e1b1b}
+.btn.blue{background:var(--blue);color:#fff;border-color:#0d3f82}
+.btn.alt{background:#fff}
+.btn.sm{min-height:52px;padding:0 16px;font-size:19px}
+.btn[disabled]{opacity:.4}
+
+/* ===== VENDER ===== */
+.sell{flex:1;display:grid;grid-template-columns:minmax(0,1fr) clamp(380px,36vw,500px);gap:12px;padding:10px;min-height:0}
+.left{display:flex;flex-direction:column;min-height:0}
+.cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;flex:none}
+.chip{padding:10px 18px;background:#fff;border:2px solid var(--line);font-weight:700;border-radius:99px;min-height:48px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;align-content:start;padding:2px 2px 20px}
+.prod{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:122px;padding:8px;
+  border:3px solid rgba(0,0,0,.18);text-align:center}
+.prod .em{font-size:34px;line-height:1}
+.prod .nm{font-weight:800;font-size:21px;line-height:1.1;overflow-wrap:anywhere}
+.prod .pr{font-weight:800;font-size:24px;color:#0b4d1d}
+.prod .st{font-size:16px;color:var(--mute)}
+.prod.low .st{color:var(--amber);font-weight:700}
+.prod.out{opacity:.45}
+.prod.out .st{color:var(--red);font-weight:800}
+.empty{padding:40px 20px;text-align:center;color:var(--mute);font-size:22px}
+
+.right{background:var(--card);border-radius:var(--r);border:2px solid var(--line);display:flex;flex-direction:column;padding:8px 10px;gap:6px;min-height:0;overflow:auto}
+.ticket{flex:1;min-height:84px;overflow:auto;border-bottom:2px dashed var(--line);padding-bottom:6px}
+.line{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #eee}
+.line .n{font-weight:700;font-size:19px;line-height:1.1}
+.line .n small{display:block;font-weight:400;color:var(--mute);font-size:15px}
+.line .q{display:flex;align-items:center;gap:4px}
+.line .q button{width:48px;height:48px;background:#e4ddcc;font-size:26px;font-weight:800;padding:0}
+.line .q b{min-width:32px;text-align:center;font-size:22px}
+.line .s{font-weight:800;font-size:20px;min-width:72px;text-align:right}
+.total{display:flex;justify-content:space-between;align-items:baseline;font-weight:800}
+.total span{font-size:22px}.total b{font-size:38px}
+.pay{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pay span{font-weight:800;font-size:22px}
+.disp{flex:1;text-align:right;background:#f6f3ea;border:2px solid var(--line);border-radius:10px;padding:0 12px;font-weight:800;font-size:30px;min-height:48px;line-height:44px;overflow:hidden}
+.change{display:flex;justify-content:space-between;align-items:center;border-radius:12px;padding:4px 14px;font-weight:800;background:#eee;min-height:58px}
+.change span{font-size:24px}.change b{font-size:40px}
+.change.good{background:#d9f2df;color:#0b4d1d}
+.change.miss{background:#fde3e3;color:#8e1b1b}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick .btn{flex:1;min-height:46px;font-size:21px;padding:0 8px}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pad button{height:var(--btn);font-size:28px;font-weight:800;background:#ece6d6;border:2px solid #d3caae}
+.pad .w2{grid-column:span 2}
+.pad .red{background:#f6d4d4;border-color:#e0a8a8}
+.actions{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.actions .btn{min-height:calc(var(--btn) + 4px);font-size:26px}
+
+/* ===== listas / tarjetas ===== */
+.head{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.head h2{font-size:30px;flex:1}
+.card{background:var(--card);border:2px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.card h3{font-size:24px;margin-bottom:8px}
+.prow{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:var(--r);padding:10px 14px;margin-bottom:8px}
+.prow .t{font-size:23px;font-weight:800}
+.prow .t small{display:block;font-weight:400;font-size:17px;color:var(--mute)}
+.prow .acts{display:flex;gap:8px;align-items:center}
+.stock{font-size:28px;font-weight:800;min-width:110px;text-align:center;line-height:1.05}
+.stock small{display:block;font-size:15px;font-weight:600;color:var(--mute)}
+.stock.low{color:var(--amber)}.stock.out{color:var(--red)}
+.search{width:100%;max-width:340px;font:inherit;padding:12px 14px;border:2px solid var(--line);border-radius:12px;min-height:56px}
+
+.big{font-size:56px;font-weight:900;line-height:1.05}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px}
+.kpi{background:#fff;border:2px solid var(--line);border-radius:var(--r);padding:12px 16px}
+.kpi span{display:block;color:var(--mute);font-size:19px}
+.kpi b{font-size:38px;display:block}
+.kpi.g{background:#d9f2df;border-color:#9bd3a8}
+.kpi.a{background:#fff2d6;border-color:#e8c98a}
+table{width:100%;border-collapse:collapse;font-size:20px}
+th,td{padding:9px 8px;border-bottom:1px solid #e8e2d2;text-align:left}
+th{font-size:17px;color:var(--mute);font-weight:700}
+td.r,th.r{text-align:right}
+tr.void td{text-decoration:line-through;color:#999}
+.eq{display:grid;grid-template-columns:1fr auto;gap:2px 16px;font-size:24px;max-width:560px}
+.eq div:nth-child(even){text-align:right;font-weight:800}
+.eq .sum{border-top:3px solid var(--ink);padding-top:6px;margin-top:6px;font-size:28px}
+.alert{background:#fff2d6;border:2px solid #e8c98a;border-radius:var(--r);padding:12px 16px;margin-bottom:12px;font-size:22px;font-weight:700}
+.alert.red{background:#fde3e3;border-color:#e0a8a8}
+.muted{color:var(--mute)}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+label{display:block;font-weight:700;font-size:19px}
+label input{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400;padding:10px 12px;border:2px solid var(--line);border-radius:10px;min-height:56px}
+details{margin-top:8px}summary{cursor:pointer;font-weight:700;padding:10px 0}
+
+/* ===== ventanas ===== */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:12px;z-index:50}
+.box{background:#fff;border-radius:18px;padding:18px 20px;width:min(520px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.box h2{font-size:28px}
+.box .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.box .row.one{grid-template-columns:1fr}
+.box.form .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.done{text-align:center}
+.done .big{font-size:84px;color:#0b4d1d}
+.done h2{font-size:34px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:16px 26px;border-radius:14px;font-size:22px;font-weight:700;z-index:99;max-width:90vw;text-align:center}
+
+@media (max-width:900px){
+  .sell{grid-template-columns:1fr;overflow:auto}
+  body{overflow:auto}.right{min-height:560px}
+}
+@media print{
+  .tabs,.noprint,.modal,.toast,button{display:none!important}
+  body{background:#fff;overflow:visible;font-size:14px}
+  #root,#app,.page{display:block;height:auto;overflow:visible;padding:0}
+  .card,.kpi{break-inside:avoid;border-color:#999}
+}
+</style>
+</head>
+<body>
+<div id="root">
+  <nav class="tabs" id="tabs"></nav>
+  <main id="app"></main>
+</div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+
+<script>
+/* =====================  DATOS  ===================== */
+const KEY='caja.v1';
+const DEF={products:[],sales:[],moves:[],seq:0,
+  settings:{sym:'$',cambio:0,diasRetiro:15,stockBajo:5,lastBackup:0}};
+const clone=o=>JSON.parse(JSON.stringify(o));
+
+function load(){
+  const raw=localStorage.getItem(KEY);
+  if(raw){
+    try{
+      const d=JSON.parse(raw);
+      return {...clone(DEF),...d,settings:{...DEF.settings,...d.settings}};
+    }catch(e){
+      // no sobrescribir datos ilegibles: se guardan aparte antes de seguir
+      try{localStorage.setItem(KEY+'.corrupto.'+Date.now(),raw)}catch(_){}
+    }
+  }
+  return clone(DEF);
+}
+let S=load();
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(S));return true}
+  catch(e){alert('NO SE PUDO GUARDAR. Descargue una copia de seguridad en la pestaña Caja y avise a soporte.');return false}
+}
+// copia automática diaria (por si un error daña los datos)
+(function(){
+  try{
+    const t=localStorage.getItem(KEY+'.bak.t');
+    if(localStorage.getItem(KEY)&&(!t||Date.now()-(+t)>864e5)){
+      localStorage.setItem(KEY+'.bak',localStorage.getItem(KEY));
+      localStorage.setItem(KEY+'.bak.t',String(Date.now()));
+    }
+    navigator.storage&&navigator.storage.persist&&navigator.storage.persist();
+  }catch(e){}
+})();
+
+/* =====================  UTILIDADES  ===================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const toCents=s=>Math.round(parseFloat(String(s||'0').replace(',','.'))*100)||0;
+function money(c){
+  const neg=c<0;c=Math.abs(c);
+  const s=(c/100).toLocaleString('es-MX',{minimumFractionDigits:c%100?2:0,maximumFractionDigits:2});
+  return (neg?'-':'')+S.settings.sym+s;
+}
+const DIAS=864e5;
+function addDays(ts,n){const d=new Date(ts);d.setDate(d.getDate()+n);d.setHours(0,0,0,0);return d.getTime()}
+const fDate=ts=>new Date(ts).toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
+const fTime=ts=>new Date(ts).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+const dayKey=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const hue=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))%360;return h};
+const prod=id=>S.products.find(p=>p.id===id);
+
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2600);
+}
+
+/* teclado numérico compartido: edita un texto de cifras */
+function keyEdit(s,k,dec){
+  if(k==='back')return s.slice(0,-1);
+  if(k==='clear')return '';
+  if(k==='.'){if(!dec||s.includes('.'))return s;return (s||'0')+'.'}
+  if(s.includes('.')&&s.split('.')[1].length>=2)return s;
+  if(s.replace('.','').length>=9)return s;
+  if(s==='0')return k;
+  return s+k;
+}
+const padHTML=(dec)=>`
+  ${['7','8','9'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}<button data-k="back">⌫</button>
+  ${['4','5','6'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}<button class="red" data-k="clear">Borrar</button>
+  ${['1','2','3'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}<button data-k="${dec?'.':'back'}" ${dec?'':'style="visibility:hidden"'}>.</button>
+  <button class="w2" data-k="0">0</button>${dec?'':'<span></span>'}`;
+
+/* ventanas */
+function modal(html,cls=''){
+  const el=document.createElement('div');el.className='modal';
+  el.innerHTML=`<div class="box ${cls}">${html}</div>`;
+  document.body.appendChild(el);
+  return el;
+}
+function confirmBox({title,text='',ok='SÍ',no='NO',danger=false}){
+  return new Promise(res=>{
+    const m=modal(`<h2>${esc(title)}</h2>${text?`<p>${esc(text)}</p>`:''}
+      <div class="row"><button class="btn" data-r="0">${esc(no)}</button><button class="btn ${danger?'bad':'ok'}" data-r="1">${esc(ok)}</button></div>`);
+    m.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;m.remove();res(b.dataset.r==='1')});
+  });
+}
+function ask({title,sub='',dec=true,initial='',actions=[],okLabel='ACEPTAR'}){
+  return new Promise(res=>{
+    let v=initial;
+    const m=modal(`<h2>${esc(title)}</h2>${sub?`<p class="muted">${esc(sub)}</p>`:''}
+      <div class="disp" id="kv"></div>
+      ${actions.length?`<div class="quick">${actions.map((a,i)=>`<button class="btn alt" data-a="${i}">${esc(a.label)}</button>`).join('')}</div>`:''}
+      <div class="pad">${padHTML(dec)}</div>
+      <div class="row"><button class="btn bad" data-r="no">CANCELAR</button><button class="btn ok" data-r="ok">${esc(okLabel)}</button></div>`);
+    const show=()=>{m.querySelector('#kv').textContent=dec?(S.settings.sym+(v||'0')):(v||'0')};show();
+    m.addEventListener('click',e=>{
+      const k=e.target.closest('[data-k]'),a=e.target.closest('[data-a]'),r=e.target.closest('[data-r]');
+      if(k){v=keyEdit(v,k.dataset.k,dec);show()}
+      else if(a){v=String(actions[+a.dataset.a].value);show()}
+      else if(r){m.remove();res(r.dataset.r==='ok'?v:null)}
+    });
+  });
+}
+
+/* =====================  ESTADO DE PANTALLA  ===================== */
+const ui={tab:'vender',cat:'',pay:'',cart:[],period:'hoy',q:''};
+const cartQty=id=>(ui.cart.find(l=>l.pid===id)||{qty:0}).qty;
+const cartTotal=()=>ui.cart.reduce((t,l)=>{const p=prod(l.pid);return t+(p?p.price*l.qty:0)},0);
+const isLow=p=>p.stock>0&&p.stock<=S.settings.stockBajo;
+const alertCount=()=>S.products.filter(p=>p.stock<=S.settings.stockBajo).length;
+
+/* =====================  CÁLCULOS DE CAJA  ===================== */
+const liveSales=()=>S.sales.filter(s=>!s.void);
+const lastRetiro=()=>S.moves.filter(m=>m.type==='retiro').sort((a,b)=>b.ts-a.ts)[0];
+function cajaNums(){
+  const agregado=S.moves.filter(m=>m.type==='ingreso').reduce((t,m)=>t+m.amount,0);
+  const retirado=S.moves.filter(m=>m.type==='retiro').reduce((t,m)=>t+m.amount,0);
+  const ventas=liveSales().reduce((t,s)=>t+s.total,0);
+  const lr=lastRetiro();
+  const desde=lr?lr.ts:0;
+  const ventasDesde=liveSales().filter(s=>s.ts>desde).reduce((t,s)=>t+s.total,0);
+  return {agregado,retirado,ventas,enCaja:agregado+ventas-retirado,lr,ventasDesde};
+}
+function range(p){
+  const now=Date.now(),t0=addDays(now,0);
+  const d=new Date(now);
+  switch(p){
+    case 'hoy':return [t0,Infinity];
+    case 'ayer':return [addDays(now,-1),t0];
+    case '15d':return [addDays(now,-14),Infinity];
+    case 'mes':return [new Date(d.getFullYear(),d.getMonth(),1).getTime(),Infinity];
+    case 'retiro':{const lr=lastRetiro();return [lr?lr.ts+1:0,Infinity]}
+    default:return [0,Infinity];
+  }
+}
+const PERIODOS=[['hoy','Hoy'],['ayer','Ayer'],['15d','Últimos 15 días'],['mes','Este mes'],['retiro','Desde el último retiro'],['todo','Todo']];
+
+/* =====================  RENDER  ===================== */
+function renderTabs(){
+  const n=alertCount();
+  const t=[['vender','🛒 VENDER'],['productos','📦 PRODUCTOS'],['ventas','📊 VENTAS'],['caja','💵 CAJA']];
+  $('#tabs').innerHTML=t.map(([k,l])=>`<button class="tab ${ui.tab===k?'on':''}" data-act="tab" data-v="${k}">${l}${k==='productos'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('')+
+    `<div class="clock"><b id="clk"></b><span id="clkd"></span></div>`;
+  tick();
+}
+function tick(){
+  const n=Date.now();const a=$('#clk'),b=$('#clkd');
+  if(a)a.textContent=fTime(n);if(b)b.textContent=fDate(n);
+}
+setInterval(tick,20000);
+
+function render(){
+  const keep={};
+  document.querySelectorAll('#grid,#ticket,.page').forEach(e=>keep[e.id||e.className]=e.scrollTop);
+  renderTabs();
+  const v={vender:vVender,productos:vProductos,ventas:vVentas,caja:vCaja}[ui.tab];
+  $('#app').innerHTML=v();
+  document.querySelectorAll('#grid,#ticket,.page').forEach(e=>{const k=e.id||e.className;if(keep[k])e.scrollTop=keep[k]});
+}
+
+/* ---------- VENDER ---------- */
+function vVender(){
+  const cats=[...new Set(S.products.map(p=>p.cat).filter(Boolean))].sort();
+  if(ui.cat&&!cats.includes(ui.cat))ui.cat='';
+  const list=S.products.filter(p=>!ui.cat||p.cat===ui.cat);
+  const total=cartTotal(),paid=toCents(ui.pay),has=ui.pay!=='';
+  const diff=paid-total;
+  const quickBases=[5,10,20,50,100,200,500,1000];
+  const sug=[...new Set(quickBases.map(b=>Math.ceil(total/(b*100))*b*100))].filter(v=>v>total).slice(0,4);
+
+  const grid=list.length?list.map(p=>{
+    const left=p.stock-cartQty(p.id);
+    const cls=p.stock<=0?'out':isLow(p)?'low':'';
+    return `<button class="prod ${cls}" style="background:hsl(${hue(p.name)} 70% 92%)" data-act="add" data-id="${p.id}">
+      ${p.emoji?`<span class="em">${esc(p.emoji)}</span>`:''}
+      <span class="nm">${esc(p.name)}</span><span class="pr">${money(p.price)}</span>
+      <span class="st">${p.stock<=0?'AGOTADO':'Quedan '+left}</span></button>`}).join('')
+    :`<div class="empty" style="grid-column:1/-1">${S.products.length?'No hay productos en esta categoría.':'Todavía no hay productos.<br><br><button class="btn ok" data-act="tab" data-v="productos">📦 Ir a PRODUCTOS para agregarlos</button>'}</div>`;
+
+  const lines=ui.cart.length?ui.cart.map(l=>{const p=prod(l.pid);if(!p)return '';
+    return `<div class="line"><div class="n">${esc(p.name)}<small>${money(p.price)} c/u</small></div>
+      <div class="q"><button data-act="minus" data-id="${p.id}">−</button><b>${l.qty}</b><button data-act="plus" data-id="${p.id}">+</button></div>
+      <div class="s">${money(p.price*l.qty)}</div></div>`}).join('')
+    :`<div class="empty" style="font-size:20px;padding:20px 8px">Toque un producto<br>para agregarlo a la cuenta</div>`;
+
+  let chg;
+  if(!ui.cart.length)chg=`<div class="change"><span>DEVUELVE</span><b>—</b></div>`;
+  else if(!has)chg=`<div class="change"><span>Escriba con cuánto paga</span></div>`;
+  else if(diff<0)chg=`<div class="change miss"><span>FALTA</span><b>${money(-diff)}</b></div>`;
+  else chg=`<div class="change good"><span>DEVUELVE</span><b>${money(diff)}</b></div>`;
+
+  return `<div class="sell">
+   <section class="left">
+     ${cats.length?`<div class="cats"><button class="chip ${ui.cat?'':'on'}" data-act="cat" data-v="">Todos</button>${cats.map(c=>`<button class="chip ${ui.cat===c?'on':''}" data-act="cat" data-v="${esc(c)}">${esc(c)}</button>`).join('')}</div>`:''}
+     <div class="grid" id="grid">${grid}</div>
+   </section>
+   <aside class="right">
+     <div class="ticket" id="ticket">${lines}</div>
+     <div class="total"><span>TOTAL</span><b>${money(total)}</b></div>
+     <div class="pay"><span>PAGA CON</span><div class="disp">${has?S.settings.sym+esc(ui.pay):''}</div></div>
+     ${chg}
+     <div class="quick">${total?`<button class="btn alt" data-act="payv" data-v="${total/100}">Justo</button>`:''}${sug.map(v=>`<button class="btn alt" data-act="payv" data-v="${v/100}">${money(v)}</button>`).join('')}</div>
+     <div class="pad">
+       ${['7','8','9'].map(k=>`<button data-act="key" data-k="${k}">${k}</button>`).join('')}<button data-act="key" data-k="back">⌫</button>
+       ${['4','5','6'].map(k=>`<button data-act="key" data-k="${k}">${k}</button>`).join('')}<button class="red" data-act="key" data-k="clear">C</button>
+       ${['1','2','3'].map(k=>`<button data-act="key" data-k="${k}">${k}</button>`).join('')}<button data-act="key" data-k=".">.</button>
+       <button class="w2" data-act="key" data-k="0">0</button><button class="w2" data-act="key" data-k="00">00</button>
+     </div>
+     <div class="actions"><button class="btn bad" data-act="vaciar">Cancelar</button><button class="btn ok" data-act="cobrar">✔ COBRAR</button></div>
+   </aside></div>`;
+}
+
+/* ---------- PRODUCTOS ---------- */
+function vProductos(){
+  const q=ui.q.trim().toLowerCase();
+  const list=[...S.products].sort((a,b)=>a.name.localeCompare(b.name,'es')).filter(p=>!q||p.name.toLowerCase().includes(q)||(p.cat||'').toLowerCase().includes(q));
+  const rows=list.map(p=>{
+    const cls=p.stock<=0?'out':isLow(p)?'low':'';
+    return `<div class="prow"><div class="t">${esc(p.emoji||'')} ${esc(p.name)}<small>${money(p.price)}${p.cat?' · '+esc(p.cat):''}</small></div>
+      <div class="acts"><div class="stock ${cls}">${p.stock}<small>${p.stock<=0?'AGOTADO':isLow(p)?'quedan pocos':'en stock'}</small></div>
+      <button class="btn ok sm" data-act="cargar" data-id="${p.id}">➕ CARGAR</button>
+      <button class="btn sm" data-act="editar" data-id="${p.id}">✏️ Editar</button></div></div>`}).join('');
+  return `<div class="page"><div class="head"><h2>Productos y stock</h2>
+    <input class="search" id="q" placeholder="🔍 Buscar..." value="${esc(ui.q)}" data-bind="q">
+    <button class="btn ok" data-act="nuevo">➕ AGREGAR PRODUCTO</button></div>
+    ${S.products.length?'':'<div class="card"><h3>Empiece aquí</h3><p>1. Toque <b>AGREGAR PRODUCTO</b>.<br>2. Escriba el nombre, el precio y cuántas unidades hay.<br>3. Cuando llegue mercadería, toque <b>➕ CARGAR</b> en ese producto y escriba cuántas llegaron.</p></div>'}
+    ${rows||(S.products.length?'<div class="empty">No se encontró ese producto.</div>':'')}</div>`;
+}
+
+/* ---------- VENTAS (reporte) ---------- */
+function vVentas(){
+  const [a,b]=range(ui.period);
+  const inR=S.sales.filter(s=>s.ts>=a&&s.ts<b).sort((x,y)=>y.ts-x.ts);
+  const live=inR.filter(s=>!s.void);
+  const total=live.reduce((t,s)=>t+s.total,0);
+  const hasCost=S.products.some(p=>p.cost>0);
+  const ganancia=live.reduce((t,s)=>t+s.items.reduce((u,i)=>u+(i.cost>0?(i.price-i.cost)*i.qty:0),0),0);
+  const unidades=live.reduce((t,s)=>t+s.items.reduce((u,i)=>u+i.qty,0),0);
+
+  const byDay={};live.forEach(s=>{const k=dayKey(s.ts);(byDay[k]=byDay[k]||{ts:s.ts,n:0,t:0});byDay[k].n++;byDay[k].t+=s.total});
+  const days=Object.entries(byDay).sort((x,y)=>y[0].localeCompare(x[0]));
+  const byProd={};live.forEach(s=>s.items.forEach(i=>{const o=(byProd[i.name]=byProd[i.name]||{q:0,t:0});o.q+=i.qty;o.t+=i.price*i.qty}));
+  const prods=Object.entries(byProd).sort((x,y)=>y[1].t-x[1].t);
+  const per=PERIODOS.find(p=>p[0]===ui.period)[1];
+
+  return `<div class="page"><div class="head noprint"><h2>Reporte de ventas</h2>
+    <button class="btn blue sm" data-act="print">🖨 Imprimir</button>
+    <button class="btn sm" data-act="csv">⬇ Descargar para Excel</button></div>
+    <div class="cats noprint">${PERIODOS.map(([k,l])=>`<button class="chip ${ui.period===k?'on':''}" data-act="period" data-v="${k}">${l}</button>`).join('')}</div>
+    <p class="muted" style="margin-bottom:10px">Período: <b>${per}</b> · impreso ${fDate(Date.now())} ${fTime(Date.now())}</p>
+    <div class="kpis"><div class="kpi g"><span>Total vendido</span><b>${money(total)}</b></div>
+      <div class="kpi"><span>Número de ventas</span><b>${live.length}</b></div>
+      <div class="kpi"><span>Unidades vendidas</span><b>${unidades}</b></div>
+      ${hasCost?`<div class="kpi"><span>Ganancia estimada</span><b>${money(ganancia)}</b></div>`:''}</div>
+    ${live.length?`<div class="card"><h3>Por día</h3><table><tr><th>Día</th><th class="r">Ventas</th><th class="r">Total</th></tr>
+      ${days.map(([,d])=>`<tr><td>${fDate(d.ts)}</td><td class="r">${d.n}</td><td class="r"><b>${money(d.t)}</b></td></tr>`).join('')}</table></div>
+    <div class="card"><h3>Qué se vendió</h3><table><tr><th>Producto</th><th class="r">Unidades</th><th class="r">Total</th></tr>
+      ${prods.map(([n,o])=>`<tr><td>${esc(n)}</td><td class="r">${o.q}</td><td class="r"><b>${money(o.t)}</b></td></tr>`).join('')}</table></div>`
+    :'<div class="empty">No hay ventas en este período.</div>'}
+    ${inR.length?`<div class="card"><h3>Cada venta</h3><table><tr><th>N°</th><th>Hora</th><th>Detalle</th><th class="r">Total</th><th class="noprint"></th></tr>
+      ${inR.slice(0,150).map(s=>`<tr class="${s.void?'void':''}"><td>${s.n}</td><td>${fDate(s.ts)} ${fTime(s.ts)}</td>
+        <td>${s.items.map(i=>i.qty+'× '+esc(i.name)).join(', ')}${s.void?' <b style="text-decoration:none;color:#c62828">(ANULADA)</b>':''}</td>
+        <td class="r"><b>${money(s.total)}</b></td>
+        <td class="noprint">${s.void?'':`<button class="btn sm" data-act="anular" data-id="${s.id}">Anular</button>`}</td></tr>`).join('')}</table>
+      ${inR.length>150?'<p class="muted">Se muestran las 150 más recientes.</p>':''}</div>`:''}</div>`;
+}
+
+/* ---------- CAJA ---------- */
+function vCaja(){
+  const n=cajaNums();
+  const dias=n.lr?Math.floor((Date.now()-n.lr.ts)/DIAS):null;
+  const pasaron=dias!==null?dias>=S.settings.diasRetiro:(n.ventas>0&&Math.floor((Date.now()-Math.min(...S.sales.map(s=>s.ts)))/DIAS)>=S.settings.diasRetiro);
+  const bakOld=S.sales.length&&(Date.now()-S.settings.lastBackup>7*DIAS);
+  const moves=[...S.moves].sort((a,b)=>b.ts-a.ts).slice(0,40);
+  const st=S.settings;
+  return `<div class="page"><div class="head"><h2>Dinero en caja</h2></div>
+    ${pasaron?`<div class="alert red">⏰ Ya pasaron ${S.settings.diasRetiro} días o más desde el último retiro. Toca sacar dinero de la caja.</div>`:''}
+    <div class="kpis"><div class="kpi g"><span>HAY EN LA CAJA AHORA</span><b class="big">${money(n.enCaja)}</b></div>
+      <div class="kpi a"><span>Vendido desde el último retiro</span><b>${money(n.ventasDesde)}</b></div>
+      <div class="kpi"><span>Último retiro</span><b style="font-size:26px">${n.lr?money(n.lr.amount)+'<br><small class="muted" style="font-weight:400">'+fDate(n.lr.ts)+' · hace '+dias+' día'+(dias===1?'':'s')+'</small>':'Ninguno todavía'}</b></div></div>
+    <div class="head"><button class="btn bad" data-act="retiro">⬆ RETIRAR DINERO</button>
+      <button class="btn blue" data-act="ingreso">⬇ AGREGAR DINERO (cambio)</button>
+      <button class="btn" data-act="contar">🧮 Contar la caja</button></div>
+    <div class="card"><h3>¿De dónde sale ese dinero?</h3><div class="eq">
+      <div>Dinero que se puso en la caja (cambio, fondo)</div><div>${money(n.agregado)}</div>
+      <div>+ Todas las ventas cobradas</div><div>${money(n.ventas)}</div>
+      <div>− Dinero que se retiró</div><div>${money(n.retirado)}</div>
+      <div class="sum">= Debe haber en la caja</div><div class="sum">${money(n.enCaja)}</div></div></div>
+    <div class="card"><h3>Movimientos de dinero</h3>${moves.length?`<table><tr><th>Cuándo</th><th>Qué pasó</th><th class="r">Monto</th><th class="noprint"></th></tr>
+      ${moves.map(m=>`<tr><td>${fDate(m.ts)} ${fTime(m.ts)}</td><td>${m.type==='retiro'?'⬆ Retiro':'⬇ Se agregó'}${m.note?' · '+esc(m.note):''}</td>
+        <td class="r"><b style="color:${m.type==='retiro'?'#c62828':'#1b8a3a'}">${m.type==='retiro'?'−':'+'}${money(m.amount)}</b></td>
+        <td class="noprint"><button class="btn sm" data-act="delmove" data-id="${m.id}">Borrar</button></td></tr>`).join('')}</table>`
+      :'<p class="muted">Aún no hay movimientos. Si deja dinero para dar vuelto, toque “Agregar dinero”.</p>'}</div>
+    <div class="card noprint"><h3>Copia de seguridad ${bakOld?'⚠':''}</h3>
+      <p class="muted" style="margin-bottom:10px">Los datos viven en esta computadora. ${S.settings.lastBackup?'Última copia: '+fDate(S.settings.lastBackup)+'.':'Todavía no hizo ninguna copia.'} Haga una copia cada semana y guárdela en un pendrive o en el correo.</p>
+      <div class="head" style="margin:0"><button class="btn ok" data-act="backup">💾 Descargar copia</button>
+      <button class="btn" data-act="restore">📂 Recuperar desde copia</button></div></div>
+    <details class="card noprint"><summary>⚙️ Ajustes</summary><div class="set">
+      <label>Símbolo de moneda<input data-set="sym" value="${esc(st.sym)}" maxlength="4"></label>
+      <label>Cada cuántos días se retira dinero<input data-set="diasRetiro" inputmode="numeric" value="${st.diasRetiro}"></label>
+      <label>Dinero que se deja en caja al retirar<input data-set="cambio" inputmode="decimal" value="${st.cambio/100}"></label>
+      <label>Avisar stock bajo cuando queden<input data-set="stockBajo" inputmode="numeric" value="${st.stockBajo}"></label></div>
+      <p style="margin-top:14px"><button class="btn bad sm" data-act="borrartodo">Borrar todos los datos</button></p></details></div>`;
+}
+
+/* =====================  ACCIONES  ===================== */
+function showDone(sale){
+  const m=modal(`<div class="done"><h2>✅ VENTA LISTA</h2>
+    ${sale.change>0?`<p style="font-size:26px;margin-top:10px">DEVUELVA AL CLIENTE</p><div class="big">${money(sale.change)}</div>`
+      :'<div class="big" style="font-size:44px;margin:14px 0">Pago justo,<br>no hay vuelto</div>'}
+    <p class="muted" style="margin:10px 0 16px">Total ${money(sale.total)} · Pagó con ${money(sale.paid)}</p>
+    <button class="btn ok" style="width:100%;font-size:30px" data-r="1">LISTO</button></div>`);
+  m.addEventListener('click',e=>{if(e.target.closest('[data-r]'))m.remove()});
+  m.querySelector('[data-r]').focus();
+}
+function cobrar(){
+  if(!ui.cart.length)return toast('Primero toque los productos que lleva el cliente');
+  const total=cartTotal();
+  if(ui.pay==='')return toast('Escriba con cuánto paga el cliente');
+  const paid=toCents(ui.pay);
+  if(paid<total)return toast('Falta '+money(total-paid)+' para completar el pago');
+  for(const l of ui.cart){const p=prod(l.pid);if(!p||p.stock<l.qty)return toast('Ya no alcanza el stock de '+(p?p.name:'un producto'))}
+  const items=ui.cart.map(l=>{const p=prod(l.pid);p.stock-=l.qty;return {pid:p.id,name:p.name,price:p.price,cost:p.cost||0,qty:l.qty}});
+  const sale={id:uid(),n:++S.seq,ts:Date.now(),items,total,paid,change:paid-total,void:false};
+  S.sales.push(sale);
+  if(!save()){S.sales.pop();S.seq--;items.forEach(i=>prod(i.pid).stock+=i.qty);return}
+  ui.cart=[];ui.pay='';render();showDone(sale);
+}
+async function productForm(p){
+  const isNew=!p;p=p||{name:'',price:0,cost:0,stock:0,cat:'',emoji:''};
+  const m=modal(`<h2>${isNew?'Agregar producto':'Editar producto'}</h2>
+    <label>Nombre<input id="f_name" value="${esc(p.name)}" placeholder="Ej: Pan francés"></label>
+    <div class="g2"><label>Precio de venta<input id="f_price" inputmode="decimal" value="${p.price?p.price/100:''}"></label>
+    <label>${isNew?'Cuántos hay':'Cuántos hay (conteo real)'}<input id="f_stock" inputmode="numeric" value="${p.stock||''}"></label></div>
+    <details><summary>Más opciones (no obligatorias)</summary><div class="g2">
+      <label>Costo (lo que le cuesta)<input id="f_cost" inputmode="decimal" value="${p.cost?p.cost/100:''}"></label>
+      <label>Categoría<input id="f_cat" value="${esc(p.cat)}" placeholder="Ej: Bebidas"></label>
+      <label>Dibujo (emoji)<input id="f_emoji" value="${esc(p.emoji)}" maxlength="4"></label></div></details>
+    <div class="row"><button class="btn bad" data-r="no">CANCELAR</button><button class="btn ok" data-r="ok">GUARDAR</button></div>
+    ${isNew?'':'<button class="btn sm" data-r="del">🗑 Eliminar este producto</button>'}`,'form');
+  m.addEventListener('click',async e=>{
+    const r=e.target.closest('[data-r]');if(!r)return;
+    if(r.dataset.r==='no')return m.remove();
+    if(r.dataset.r==='del'){
+      if(await confirmBox({title:'¿Eliminar '+p.name+'?',text:'Las ventas anteriores se conservan.',ok:'SÍ, ELIMINAR',danger:true})){
+        S.products=S.products.filter(x=>x.id!==p.id);ui.cart=ui.cart.filter(l=>l.pid!==p.id);save();m.remove();render();
+      }return;
+    }
+    const v=id=>m.querySelector(id).value.trim();
+    const name=v('#f_name'),price=toCents(v('#f_price'));
+    if(!name)return toast('Escriba el nombre del producto');
+    if(price<=0)return toast('Escriba el precio de venta');
+    const dup=S.products.find(x=>x.name.toLowerCase()===name.toLowerCase()&&x.id!==p.id);
+    if(dup)return toast('Ya existe un producto con ese nombre');
+    const o={name,price,cost:toCents(v('#f_cost')),stock:Math.max(0,parseInt(v('#f_stock'))||0),cat:v('#f_cat'),emoji:v('#f_emoji')};
+    if(isNew)S.products.push({id:uid(),...o});else Object.assign(p,o);
+    save();m.remove();render();toast('Guardado ✔');
+  });
+  setTimeout(()=>m.querySelector('#f_name').focus(),50);
+}
+function downloadFile(name,text,mime){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+const stamp=()=>dayKey(Date.now());
+const csvCell=v=>'"'+String(v).replace(/"/g,'""')+'"';
+
+const act={
+  tab(d){ui.tab=d.v;render()},
+  cat(d){ui.cat=d.v;render()},
+  add(d){
+    const p=prod(d.id);if(!p)return;const q=cartQty(p.id);
+    if(p.stock<=0)return toast(p.name+' está agotado');
+    if(q+1>p.stock)return toast('Solo quedan '+p.stock+' de '+p.name);
+    const l=ui.cart.find(l=>l.pid===p.id);l?l.qty++:ui.cart.push({pid:p.id,qty:1});render();
+  },
+  plus(d){act.add(d)},
+  minus(d){const l=ui.cart.find(l=>l.pid===d.id);if(!l)return;l.qty--;if(l.qty<=0)ui.cart=ui.cart.filter(x=>x!==l);render()},
+  key(d){ui.pay=d.k==='00'?keyEdit(keyEdit(ui.pay,'0',true),'0',true):keyEdit(ui.pay,d.k,true);render()},
+  payv(d){ui.pay=String(d.v);render()},
+  async vaciar(){
+    if(!ui.cart.length&&ui.pay==='')return;
+    if(await confirmBox({title:'¿Cancelar esta cuenta?',text:'Se borran los productos y el pago escritos.',ok:'SÍ, CANCELAR',no:'NO, SEGUIR',danger:true})){ui.cart=[];ui.pay='';render()}
+  },
+  cobrar,
+  nuevo(){productForm(null)},
+  editar(d){productForm(prod(d.id))},
+  async cargar(d){
+    const p=prod(d.id);
+    const v=await ask({title:'¿Cuántas unidades llegaron?',sub:p.name+' · ahora hay '+p.stock,dec:false,okLabel:'CARGAR'});
+    if(v===null)return;const n=parseInt(v)||0;
+    if(n<=0)return toast('No se cargó nada');
+    p.stock+=n;save();render();toast('Listo: '+p.name+' ahora tiene '+p.stock);
+  },
+  period(d){ui.period=d.v;render()},
+  print(){window.print()},
+  csv(){
+    const [a,b]=range(ui.period);
+    const rows=[['Venta N°','Fecha','Hora','Producto','Cantidad','Precio','Subtotal','Estado']];
+    S.sales.filter(s=>s.ts>=a&&s.ts<b).sort((x,y)=>x.ts-y.ts).forEach(s=>s.items.forEach(i=>
+      rows.push([s.n,dayKey(s.ts),fTime(s.ts),i.name,i.qty,i.price/100,i.price*i.qty/100,s.void?'ANULADA':'OK'])));
+    downloadFile('ventas-'+stamp()+'.csv','﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'),'text/csv');
+  },
+  async anular(d){
+    const s=S.sales.find(x=>x.id===d.id);if(!s||s.void)return;
+    if(!await confirmBox({title:'¿Anular la venta N° '+s.n+'?',text:'Se devuelven los productos al stock y se resta el dinero de la caja ('+money(s.total)+').',ok:'SÍ, ANULAR',no:'NO',danger:true}))return;
+    s.void=true;s.voidTs=Date.now();
+    s.items.forEach(i=>{const p=prod(i.pid);if(p)p.stock+=i.qty});
+    save();render();toast('Venta anulada');
+  },
+  async retiro(){
+    const n=cajaNums();
+    if(n.enCaja<=0)return toast('No hay dinero en la caja para retirar');
+    const deja=S.settings.cambio;
+    const acts=[{label:'Todo ('+money(n.enCaja)+')',value:n.enCaja/100}];
+    if(deja>0&&n.enCaja>deja)acts.push({label:'Todo menos '+money(deja)+' de cambio',value:(n.enCaja-deja)/100});
+    const v=await ask({title:'¿Cuánto dinero retira?',sub:'Hay '+money(n.enCaja)+' en la caja',actions:acts,okLabel:'RETIRAR'});
+    if(v===null)return;const amount=toCents(v);
+    if(amount<=0)return toast('No se retiró nada');
+    if(amount>n.enCaja)return toast('No hay tanto dinero: en caja hay '+money(n.enCaja));
+    if(!await confirmBox({title:'¿Retirar '+money(amount)+'?',text:'Quedarán '+money(n.enCaja-amount)+' en la caja.',ok:'SÍ, RETIRAR'}))return;
+    S.moves.push({id:uid(),ts:Date.now(),type:'retiro',amount,note:''});save();render();toast('Retiro anotado ✔');
+  },
+  async ingreso(){
+    const v=await ask({title:'¿Cuánto dinero agrega a la caja?',sub:'Por ejemplo, billetes y monedas para dar vuelto',okLabel:'AGREGAR'});
+    if(v===null)return;const amount=toCents(v);if(amount<=0)return toast('No se agregó nada');
+    S.moves.push({id:uid(),ts:Date.now(),type:'ingreso',amount,note:'Cambio / fondo'});save();render();toast('Dinero agregado ✔');
+  },
+  async contar(){
+    const n=cajaNums();
+    const v=await ask({title:'Cuente el dinero de la caja',sub:'Escriba cuánto dinero hay realmente',okLabel:'COMPARAR'});
+    if(v===null)return;const real=toCents(v),dif=real-n.enCaja;
+    const m=modal(`<div class="done"><h2>${dif===0?'✅ La caja está exacta':dif>0?'Sobra dinero':'Falta dinero'}</h2>
+      <p style="margin:10px 0">Debería haber <b>${money(n.enCaja)}</b><br>Usted contó <b>${money(real)}</b></p>
+      ${dif?`<div class="big" style="color:${dif>0?'#1b8a3a':'#c62828'}">${dif>0?'+':'−'}${money(Math.abs(dif))}</div>`:''}
+      <button class="btn ok" style="width:100%;margin-top:14px" data-r="1">LISTO</button></div>`);
+    m.addEventListener('click',e=>{if(e.target.closest('[data-r]'))m.remove()});
+  },
+  async delmove(d){
+    const m=S.moves.find(x=>x.id===d.id);if(!m)return;
+    if(!await confirmBox({title:'¿Borrar este movimiento?',text:(m.type==='retiro'?'Retiro de ':'Dinero agregado de ')+money(m.amount)+'. Cambia el dinero que debe haber en la caja.',ok:'SÍ, BORRAR',danger:true}))return;
+    S.moves=S.moves.filter(x=>x!==m);save();render();
+  },
+  backup(){
+    S.settings.lastBackup=Date.now();save();
+    downloadFile('caja-copia-'+stamp()+'.json',JSON.stringify(S),'application/json');
+    toast('Copia descargada ✔');render();
+  },
+  restore(){$('#importFile').click()},
+  async borrartodo(){
+    if(!await confirmBox({title:'¿Borrar TODOS los datos?',text:'Productos, ventas y movimientos. No se puede deshacer. Descargue una copia antes.',ok:'SÍ, BORRAR',danger:true}))return;
+    if(!await confirmBox({title:'¿Está completamente seguro?',text:'Se perderá todo.',ok:'BORRAR TODO',no:'NO, VOLVER',danger:true}))return;
+    S=clone(DEF);ui.cart=[];ui.pay='';save();render();
+  }
+};
+
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');
+  if(el&&act[el.dataset.act])act[el.dataset.act](el.dataset);
+});
+document.addEventListener('input',e=>{
+  if(e.target.dataset.bind==='q'){ui.q=e.target.value;const pos=e.target.selectionStart;render();const i=$('#q');if(i){i.focus();i.setSelectionRange(pos,pos)}}
+});
+document.addEventListener('change',e=>{
+  const k=e.target.dataset.set;if(!k)return;const v=e.target.value.trim();const st=S.settings;
+  if(k==='sym')st.sym=v||'$';
+  else if(k==='cambio')st.cambio=Math.max(0,toCents(v));
+  else st[k]=Math.max(0,parseInt(v)||0);
+  save();toast('Ajuste guardado ✔');
+});
+$('#importFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const d=JSON.parse(await f.text());
+    if(!Array.isArray(d.products)||!Array.isArray(d.sales)||!Array.isArray(d.moves))throw new Error('formato');
+    if(!await confirmBox({title:'¿Recuperar esta copia?',text:'Tiene '+d.products.length+' productos y '+d.sales.length+' ventas. Reemplaza todo lo que hay ahora.',ok:'SÍ, RECUPERAR',danger:true}))return;
+    S={...clone(DEF),...d,settings:{...DEF.settings,...d.settings}};ui.cart=[];ui.pay='';save();render();toast('Copia recuperada ✔');
+  }catch(err){toast('Ese archivo no es una copia válida')}
+});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+render();
+</script>
+</body>
+</html>
