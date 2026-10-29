@@ -67,7 +67,7 @@ function parsePesos(v) {
   return Math.round(parseFloat(s.replace(/\./g, '').replace(',', '.'))) || 0;
 }
 
-function createApp({ pool, publicDir }) {
+function createApp({ pool, publicDir, sync }) {
   const app = express();
   app.disable('x-powered-by');
   app.use((req, res, next) => {
@@ -84,7 +84,7 @@ function createApp({ pool, publicDir }) {
 
   /* ---------- configuración ---------- */
   async function getSettings(db = pool) {
-    const { rows } = await db.query('SELECT key, value FROM settings');
+    const { rows } = await db.query(`SELECT key, value FROM settings WHERE key <> 'store_id'`);
     const s = { ...DEFAULT_SETTINGS };
     for (const r of rows) s[r.key] = r.value;
     return s;
@@ -648,6 +648,16 @@ function createApp({ pool, publicDir }) {
     res.send(JSON.stringify(out));
   }));
 
+  /* ---------- sincronización con la nube ---------- */
+  app.get('/api/sync/status', wrap(async (req, res) => {
+    res.json(sync ? await sync.status() : { enabled: false });
+  }));
+  app.post('/api/sync/run', requireAdmin, wrap(async (req, res) => {
+    if (!sync || !sync.enabled()) throw new HttpError(409, 'sin_nube', 'La nube no está configurada');
+    await sync.run();
+    res.json(await sync.status());
+  }));
+
   /* ---------- pantalla ---------- */
   if (publicDir) app.use(express.static(publicDir, { index: 'index.html', etag: true, maxAge: 0, setHeaders: r => r.set('Cache-Control', 'no-cache') }));
   app.use('/api', (req, res) => res.status(404).json({ error: 'no_existe', message: 'Ruta no encontrada' }));
@@ -667,6 +677,8 @@ async function migrate(pool) {
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
     await pool.query('INSERT INTO settings(key,value) VALUES ($1,$2) ON CONFLICT (key) DO NOTHING', [k, JSON.stringify(v)]);
   }
+  // identifica esta tienda en la nube (si se restaura en otra computadora, se conserva con la copia)
+  await pool.query(`INSERT INTO settings(key,value) VALUES ('store_id', to_jsonb(gen_random_uuid()::text)) ON CONFLICT (key) DO NOTHING`);
 }
 
 module.exports = { createApp, migrate, TZ };

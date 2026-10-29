@@ -48,12 +48,71 @@ En la cuenta, cada producto tiene el botón **% Descuento**: se puede escribir *
 
 > Los `.bat` no se pudieron probar en Windows desde el entorno donde se desarrolló; revíselos en la primera instalación.
 
+## Ver stock y ventas desde otro lugar (nube: Supabase o Neon)
+**Cómo está pensado:** la base de datos **local** (en el portátil) es la que opera la caja, así que **vender no depende del wifi**. Un sincronizador, que corre dentro del mismo programa, sube los cambios a una base PostgreSQL en la nube cada 30 segundos. Si no hay internet, los cambios quedan **pendientes** en el portátil y se suben solos al volver la conexión (el indicador ☁ de la barra superior muestra "Al día", "Subiendo N cambios" o "Sin internet · N pendientes"). La nube es un **espejo de solo lectura**: se mira desde allí, pero no se vende ni se edita desde allí.
+
+**Por qué no usar la nube como base principal:** si la caja leyera y escribiera directo en la nube, sin internet no se podría vender (ni siquiera con la computadora funcionando). Con una copia local que sube después, el único trabajo que se retrasa es el de *mirar* desde fuera.
+
+**Por qué es seguro subir "después":** cada fila guarda el número de la transacción que la escribió y el sincronizador solo sube filas de transacciones ya terminadas; subir es "insertar o actualizar", así que repetir no duplica; y el progreso solo avanza cuando la nube confirmó. Está probado, incluida una transacción lenta que confirma después de otra más nueva (`server/test/sync.test.js`).
+
+### Qué se ve en la nube
+Esquema `caja` (no lo publica la API pública de Supabase). Vistas listas para abrir en el *Table Editor* de Supabase o en la consola SQL de Neon:
+
+| Vista | Qué muestra |
+|---|---|
+| `caja.v_stock_actual` | Producto, stock, precio, y si está `OK`, `POCO` o `AGOTADO` |
+| `caja.v_ventas_por_dia` | Ventas por día (hora de Bogotá): total, efectivo, tarjeta, transferencia, descuentos |
+| `caja.v_ventas_detalle` | Cada venta con sus productos, descuentos y si fue anulada |
+| `caja.v_caja_movimientos` | Retiros y dinero agregado, con quién, motivo y cuánto quedó en caja |
+| `caja.v_caja_saldo` | Efectivo que debe haber en la caja y cuándo fue la última sincronización |
+
+### Activarla con Supabase
+1. Cree un proyecto en supabase.com.
+2. Botón **Connect** → copie la cadena **Session pooler** (usa IPv4; la conexión directa de Supabase es IPv6 y muchas redes de casa o de local no la tienen).
+3. *Database Settings → SSL Configuration*: descargue el certificado y guárdelo, por ejemplo en `C:\Caja\supabase-ca.crt`.
+4. En `.env`: `CLOUD_DATABASE_URL=` (la cadena) y `CLOUD_SSL_CA=C:\Caja\supabase-ca.crt`. Reinicie la caja. El esquema se crea solo.
+5. En Supabase → *Table Editor* → esquema `caja` → abra las vistas `v_...`.
+
+### Activarla con Neon
+En `.env`: `CLOUD_DATABASE_URL=` con la cadena de conexión del proyecto. Neon usa un certificado de una autoridad pública, así que normalmente no hace falta `CLOUD_SSL_CA`. Si diera error de certificado, use el certificado de Neon con `CLOUD_SSL_CA` (`CLOUD_SSL=insecure` cifra pero **no verifica** al servidor: último recurso).
+
+### Cuál elegir (datos de la documentación oficial)
+- **Supabase gratis:** pausa los proyectos con poca actividad después de 1 semana ([docs](https://supabase.com/docs/guides/platform/free-project-pausing)). Supabase dice que unas pocas solicitudes al día suelen bastar para mantenerlo activo, sin garantía; en planes de pago no se pausa. Tiene editor de tablas con clics, cómodo para los dueños.
+- **Neon gratis:** el cómputo se suspende tras 5 minutos sin uso y despierta al conectarse (la primera conexión tarda unos cientos de milisegundos) ([docs](https://neon.com/docs/guides/scale-to-zero-guide)). Para un espejo que se conecta cada 30 segundos no es problema.
+- Los límites de los planes gratuitos cambian; confírmelos en su página de precios antes de decidir.
+
+### Importante
+- **No borre ni reemplace la base local con una copia vieja mientras la nube está activa**: los números de venta se repetirían y pisarían datos de la nube. Para empezar de cero, borre también las filas de la tienda en el esquema `caja`.
+- Si el computador se daña, la nube **no** es una copia restaurable de todo (no guarda administradores ni PIN): para restaurar use las copias de `pg_dump` de abajo.
+
 ## Copias de seguridad (PostgreSQL)
 La copia verdadera es la de la **base de datos** (`pg_dump`). Una copia guardada *dentro* de la misma base se perdería junto con ella, por eso:
-- **`respaldar.bat`** (Windows) / **`scripts/respaldar.sh`** crean `backups/caja-FECHA.dump` y conservan 30 días. Programe `respaldar.bat` a diario en el *Programador de tareas* y copie la carpeta `backups` a un pendrive o a la nube.
+- **`respaldar.bat`** (Windows) / **`scripts/respaldar.sh`** crean `backups/caja-FECHA.dump` y conservan 30 días. Programe `respaldar.bat` a diario en el *Programador de tareas* y copie la carpeta `backups` a un pendrive. Eso funciona **sin internet**.
 - **Restaurar** en una base vacía: `pg_restore --no-owner -d caja backups\caja-FECHA.dump`.
-- Si la base está en un servicio gestionado (por ejemplo Supabase), use además sus copias automáticas.
 - Ajustes → *Descargar copia (JSON)* baja una copia legible (sin PIN) para revisar o migrar datos.
+
+## API interna (la que usa la pantalla)
+La pantalla habla con el servidor local por HTTP/JSON; **no se usa ninguna API de terceros**. Ver `server/app.js`.
+
+| Grupo | Rutas | PIN |
+|---|---|---|
+| Arranque | `GET /api/bootstrap`, `GET /api/health` | no |
+| Acceso | `POST /api/setup`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` | no |
+| Administradores | `POST /api/admins`, `PUT /api/admins/:id/pin`, `DELETE /api/admins/:id` | sí |
+| Ajustes | `PUT /api/settings` | sí |
+| Productos | `GET /api/products`, `POST /api/products/:id/stock` (cargar unidades) | no |
+| | `POST/PUT/DELETE /api/products`, `POST /api/products/parse`, `POST /api/products/bulk`, `GET /api/products/export.xlsx` | sí |
+| | `GET /api/products/template.xlsx` | no |
+| Ventas | `POST /api/sales` | no |
+| | `POST /api/sales/:id/void` | sí |
+| Reportes | `GET /api/reports/summary`, `GET /api/reports/sales.csv` | sí |
+| Caja | `GET /api/cash/state`, `GET /api/cash/moves`, `POST /api/cash/count` | no |
+| | `POST /api/cash/retiro`, `POST /api/cash/ingreso` | sí |
+| Nube | `GET /api/sync/status` | no |
+| | `POST /api/sync/run` | sí |
+| Copia | `GET /api/backup` | sí |
+
+Librerías: `express` (servidor), `pg` (PostgreSQL), `exceljs` (leer y escribir Excel). En el navegador solo se usa `fetch`.
 
 ## Desarrollo y pruebas
 ```bash
@@ -63,9 +122,10 @@ export DATABASE_URL=postgres://caja:caja_dev@localhost:5432/caja
 npm start                            # http://localhost:3000
 DATABASE_URL_TEST=postgres://caja:caja_dev@localhost:5432/caja_test npm test   # BORRA la base de pruebas
 ```
-Las pruebas (`server/test/api.test.js`) usan PostgreSQL real y cubren PIN, descuentos, los tres medios de pago, compras simultáneas de la última unidad, retiros simultáneos, saldos por día, reportes e importación de Excel.
+Las pruebas usan PostgreSQL real. `api.test.js`: PIN, descuentos, los tres medios de pago, compras y retiros simultáneos, saldos por día, reportes, Excel. `sync.test.js` (necesita además `DATABASE_URL_TEST2` y `CLOUD_URL_TEST`, otras dos bases vacías con "test" en el nombre): espejo en la nube, caída de internet y recuperación, transacciones lentas y subida por páginas.
 
 ## Seguridad
+- La conexión a la nube verifica el certificado del servidor; sin la autoridad correcta falla en vez de aceptar cualquiera.
 - El servidor escucha solo en `127.0.0.1` (esta computadora). Si se publica en internet o en la red, **hay que agregar una clave de acceso al sistema completo**: hoy cualquiera que lo alcance podría vender y ver stock sin PIN.
 - Las consultas usan parámetros (sin inyección SQL) y toda la pantalla escapa el texto que muestra.
 - `npm audit` reporta 2 avisos *moderados* de `uuid` dentro de `exceljs` (solo afecta a `uuid` v3/v5/v6 con un búfer propio; `exceljs` usa v4). Se aceptan por ahora.

@@ -95,3 +95,39 @@ CREATE TABLE IF NOT EXISTS cash_counts (
   counted    bigint NOT NULL,
   diff       bigint NOT NULL
 );
+
+-- ===== Sincronización con la nube (espejo de solo lectura para los dueños) =====
+-- Cada fila lleva en sync_x el id de la transacción que la escribió por última vez.
+-- El sincronizador solo sube filas de transacciones ya terminadas (ver server/sync.js).
+CREATE OR REPLACE FUNCTION caja_sync_touch() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.sync_x := pg_current_xact_id()::text::bigint;
+  RETURN NEW;
+END $$;
+
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['products','sales','sale_items','stock_moves','cash_moves','cash_counts'] LOOP
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = t AND column_name = 'sync_x') THEN
+      EXECUTE format('ALTER TABLE %I ADD COLUMN sync_x bigint NOT NULL DEFAULT 0', t);
+      EXECUTE format('CREATE INDEX %I ON %I (sync_x, id)', t || '_sync_idx', t);
+    END IF;
+    EXECUTE format('DROP TRIGGER IF EXISTS caja_sync ON %I', t);
+    EXECUTE format('CREATE TRIGGER caja_sync BEFORE INSERT OR UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION caja_sync_touch()', t);
+  END LOOP;
+END $$;
+
+CREATE TABLE IF NOT EXISTS sync_state (          -- hasta dónde se subió de cada tabla
+  tbl     text PRIMARY KEY,
+  last_x  bigint NOT NULL DEFAULT -1,
+  last_id bigint NOT NULL DEFAULT -1
+);
+CREATE TABLE IF NOT EXISTS sync_status (         -- una sola fila: cómo va la sincronización
+  id         integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  last_ok    timestamptz,
+  last_try   timestamptz,
+  last_error text
+);
+INSERT INTO sync_status (id) VALUES (1) ON CONFLICT DO NOTHING;

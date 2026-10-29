@@ -26,6 +26,8 @@ h1,h2,h3,p{margin:0}
 .tab.on{background:var(--green);box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}
 .tab .badge{position:absolute;top:3px;right:5px;background:var(--amber);color:#fff;border-radius:99px;font-size:15px;padding:0 7px;line-height:22px}
 .who{background:#ffd54f;color:#222;font-weight:800;height:58px;padding:0 12px;font-size:17px;line-height:1.1;max-width:170px}
+.cloud{height:58px;padding:0 10px;font-weight:800;font-size:15px;line-height:1.1;background:#2e7d32;color:#fff;max-width:150px}
+.cloud.wait{background:#ef6c00}.cloud.off{background:#c62828}
 .clock{margin-left:auto;color:#ddd;text-align:right;font-size:16px;line-height:1.15;padding-right:6px;white-space:nowrap}
 .clock b{font-size:24px;color:#fff;display:block}
 #app{flex:1;min-height:0;display:flex}
@@ -166,7 +168,7 @@ label input{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400
   .left{grid-column:1/-1}
   .clock{display:none}
 }
-@media (max-width:860px){ .tab .ico{display:none} .tab{font-size:15px;padding:0 2px} .who{max-width:96px;font-size:14px;padding:0 8px} .tabs{gap:4px;padding:8px 6px} }
+@media (max-width:860px){ .cloud{max-width:78px;font-size:13px;padding:0 4px} .tab .ico{display:none} .tab{font-size:15px;padding:0 2px} .who{max-width:96px;font-size:14px;padding:0 8px} .tabs{gap:4px;padding:8px 6px} }
 @media print{
   .tabs,.noprint,.modal,.toast,button{display:none!important}
   body{background:#fff;overflow:visible;font-size:14px}
@@ -237,6 +239,7 @@ setInterval(()=>{
 
 /* =====================  ESTADO  ===================== */
 const S={settings:{negocio:'',cambio_opciones:[],dias_retiro:15,stock_bajo:5,motivos_retiro:[]},products:[],admins:[],needs_setup:false};
+S.sync={enabled:false};
 const ui={tab:'vender',cat:'',q:'',cart:[],pay:'',method:'efectivo',busy:false,pq:'',period:'hoy',from:'',to:'',rep:null,cash:null,moves:[]};
 const ADMIN_TABS=['ventas','ajustes'];
 const prod=id=>S.products.find(p=>p.id===id);
@@ -387,10 +390,28 @@ function renderTabs(){
   const n=alertCount();
   const t=[['vender','🛒','VENDER'],['productos','📦','PRODUCTOS'],['ventas','📊','VENTAS'+(admin?'':' 🔒')],['caja','💵','CAJA'],['ajustes','⚙️','AJUSTES'+(admin?'':' 🔒')]];
   $('#tabs').innerHTML=t.map(([k,i,l])=>`<button class="tab ${ui.tab===k?'on':''}" data-act="tab" data-v="${k}"><span class="ico">${i} </span>${l}${k==='productos'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('')+
+    cloudChip()+
     (admin?`<button class="who" data-act="salir">🔓 ${esc(admin.name)}<br>Cerrar</button>`:'')+
     `<div class="clock"><b id="clk"></b><span id="clkd"></span></div>`;
   tick();
 }
+const ago=ts=>{if(!ts)return 'nunca';const m=Math.round((Date.now()-new Date(ts))/60000);return m<1?'hace un momento':m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} días`};
+function cloudChip(){
+  const c=S.sync;if(!c.enabled)return '';
+  if(c.last_error&&c.pending>0)return `<button class="cloud off" data-act="syncinfo">☁ Sin internet<br>${c.pending} pendientes</button>`;
+  if(c.last_error)return `<button class="cloud off" data-act="syncinfo">☁ Sin conexión<br>con la nube</button>`;
+  if(c.pending>0)return `<button class="cloud wait" data-act="syncinfo">☁ Subiendo<br>${c.pending} cambios</button>`;
+  return `<button class="cloud" data-act="syncinfo">☁ Al día<br>${ago(c.last_ok)}</button>`;
+}
+async function pollSync(){
+  try{
+    const prev=JSON.stringify([S.sync.pending,S.sync.last_error,S.sync.enabled]);
+    S.sync=await fetch('/api/sync/status').then(r=>r.json());
+    if(JSON.stringify([S.sync.pending,S.sync.last_error,S.sync.enabled])!==prev||S.sync.enabled)renderTabs();
+    if(ui.tab==='ajustes'&&!document.querySelector('.modal')&&prev!==JSON.stringify([S.sync.pending,S.sync.last_error,S.sync.enabled]))render();
+  }catch(e){}
+}
+setInterval(pollSync,15000);
 function tick(){const n=Date.now();const a=$('#clk'),b=$('#clkd');if(a)a.textContent=fTime(n);if(b)b.textContent=fDate(n)}
 setInterval(tick,20000);
 
@@ -430,7 +451,7 @@ function vVender(){
 
   const bills=[2000,5000,10000,20000,50000,100000];
   const cand=new Set([...bills.filter(b=>b>=total),...[10000,50000,100000].map(b=>Math.ceil(total/b)*b)].filter(v=>v>total));
-  const sug=[...cand].sort((a,b)=>a-b).slice(0,3);
+  const sug=total?[...cand].sort((a,b)=>a-b).slice(0,3):[];
 
   let chg;
   if(!ui.cart.length)chg=`<div class="change"><span>DEVUELVE</span><b>—</b></div>`;
@@ -566,6 +587,10 @@ function vAjustes(){
       ${S.admins.map(a=>`<div class="prow"><div class="t">${esc(a.name)}${a.id===admin?.id?' <small>(usted)</small>':''}</div><div class="acts">
         ${a.id===admin?.id?'<button class="btn sm" data-act="cambiarpin">Cambiar mi PIN</button>':`<button class="btn bad sm" data-act="deladmin" data-id="${a.id}">Quitar</button>`}</div></div>`).join('')}
       <button class="btn blue sm" data-act="addadmin">➕ Agregar administrador</button></div>
+    ${S.sync.enabled?`<div class="card"><h3>☁ Copia en la nube</h3>
+      <p>${S.sync.last_error?`<b style="color:#c62828">Sin conexión con la nube.</b> La caja sigue funcionando normal; ${S.sync.pending} cambios esperan para subirse cuando vuelva el internet.`:S.sync.pending>0?`Subiendo ${S.sync.pending} cambios…`:'<b style="color:#1b8a3a">Todo está al día en la nube.</b>'}</p>
+      <p class="muted" style="margin:6px 0 10px">Última subida correcta: ${ago(S.sync.last_ok)}. Se intenta cada 30 segundos. Desde la nube se ve el stock, las ventas y el dinero de la caja.</p>
+      <button class="btn blue sm" data-act="syncnow">🔄 Sincronizar ahora</button></div>`:`<div class="card"><h3>☁ Copia en la nube</h3><p class="muted">No está activada. Para ver el stock y las ventas desde otro lugar, configure CLOUD_DATABASE_URL (ver README).</p></div>`}
     <div class="card"><h3>Copia de seguridad</h3>
       <p class="muted" style="margin-bottom:10px">Todo se guarda en la base de datos PostgreSQL. La copia principal se hace con el respaldo de la base de datos (ver README). Aquí puede además descargar una copia legible de todo (productos, ventas, caja).</p>
       <button class="btn ok sm" data-act="backup">💾 Descargar copia (JSON)</button></div></div>`;
@@ -882,6 +907,17 @@ const act={
     if(a!==b)return toast('Los PIN no coinciden');
     await api('PUT',`/api/admins/${admin.id}/pin`,{old_pin:old,pin:a});toast('PIN cambiado ✔');
   },
+  syncinfo(){
+    const c=S.sync;
+    infoBox(`<h2>☁ Copia en la nube</h2>
+      <p style="font-size:22px">${c.last_error?'<b style="color:#c62828">Sin conexión con la nube.</b><br>Puede seguir vendiendo con normalidad: todo se guarda en esta computadora y se sube solo cuando vuelva el internet.':c.pending>0?'<b style="color:#ef6c00">Subiendo cambios…</b>':'<b style="color:#1b8a3a">Todo está al día.</b>'}</p>
+      <p class="muted">Cambios por subir: <b>${c.pending}</b><br>Última subida correcta: <b>${ago(c.last_ok)}</b></p>`);
+  },
+  async syncnow(){
+    toast('Sincronizando…');
+    S.sync=await adm(()=>api('POST','/api/sync/run',{}))||S.sync;
+    render();toast(S.sync.last_error?'No hay conexión con la nube todavía':'Listo: todo subido ✔');
+  },
   backup(){return downloadBlob('/api/backup','caja-copia.json').then(()=>toast('Copia descargada ✔'))}
 };
 async function saveSetting(patch){
@@ -910,6 +946,7 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 (async()=>{
   try{
     await boot();
+    await pollSync();
     render();
     if(S.needs_setup)wrapped(setupAdmin);
   }catch(e){
