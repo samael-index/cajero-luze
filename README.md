@@ -81,6 +81,22 @@ En `.env`: `CLOUD_DATABASE_URL=` con la cadena de conexión del proyecto. Neon u
 - **Neon gratis:** el cómputo se suspende tras 5 minutos sin uso y despierta al conectarse (la primera conexión tarda unos cientos de milisegundos) ([docs](https://neon.com/docs/guides/scale-to-zero-guide)). Para un espejo que se conecta cada 30 segundos no es problema.
 - Los límites de los planes gratuitos cambian; confírmelos en su página de precios antes de decidir.
 
+### Página para los dueños (ver desde fuera, con login)
+Carpeta `nube/`: una página **solo de lectura** (un archivo HTML, sin servidor) que muestra lo vendido hoy por medio de pago, descuentos, dinero en la caja, ventas de los últimos días, stock con alertas (agotados / por agotarse), retiros con motivo y quién, y las últimas ventas. Avisa en naranja si la caja lleva más de 15 minutos sin enviar datos (sin internet o apagada). Funciona en el celular y en modo oscuro.
+
+**Seguridad (probada en `server/test/rls.test.js` y `nube/test/dashboard.e2e.js`):** entra con correo y clave de Supabase Auth; solo los correos de la tabla `caja.owners` ven filas (cualquier otra persona con sesión ve **cero**); quien no inició sesión no tiene ningún acceso; nadie puede escribir ni borrar por la API; la página solo lleva la llave **publicable**, nunca la secreta.
+
+**Pasos en Supabase (una sola vez):**
+1. Con la caja ya sincronizada al menos una vez (existe el esquema `caja`), abra el *SQL Editor* y ejecute `server/cloud-dashboard.sql`.
+2. Agregue a los dueños (correos en minúscula):
+   `INSERT INTO caja.owners (email) VALUES ('isa@ejemplo.com'), ('yamil@ejemplo.com');`
+3. *Authentication → Users*: cree a cada dueño con su correo y una clave larga, y **desactive los registros nuevos** (*Sign In / Providers → Allow new users to sign up*), para que nadie más pueda crearse una cuenta.
+4. *Project Settings → API → Exposed schemas*: agregue `caja`.
+5. Copie en `nube/config.js` la URL del proyecto y la llave **publicable** (nunca la `service_role` / secreta).
+6. Publique la carpeta `nube/` en cualquier alojamiento de archivos estáticos (Cloudflare Pages, Netlify, GitHub Pages…) o ábrala desde su computador. Entre con su correo y clave.
+
+> Nota: esta página se probó contra un simulador de Supabase que ejecuta las consultas en PostgreSQL con los permisos reales (rol `authenticated` y claims del token), no contra un proyecto de Supabase de verdad. Al conectarla por primera vez, revise los pasos 1 a 5.
+
 ### Importante
 - **No borre ni reemplace la base local con una copia vieja mientras la nube está activa**: los números de venta se repetirían y pisarían datos de la nube. Para empezar de cero, borre también las filas de la tienda en el esquema `caja`.
 - Si el computador se daña, la nube **no** es una copia restaurable de todo (no guarda administradores ni PIN): para restaurar use las copias de `pg_dump` de abajo.

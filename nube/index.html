@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Caja - Panel de los dueños</title>
+<style>
+:root{--bg:#f3eee4;--card:#fff;--ink:#1a1a1a;--mute:#5c5c5c;--line:#d6cfc0;--green:#1b8a3a;--green-bg:#d9f2df;--amber:#e65100;--amber-bg:#fff2d6;--red:#c62828;--red-bg:#fde3e3;--blue-bg:#e8f0fb;--bar:#1b8a3a}
+@media (prefers-color-scheme:dark){:root{--bg:#161616;--card:#222;--ink:#f1f1f1;--mute:#a8a8a8;--line:#3a3a3a;--green:#66d17f;--green-bg:#17301d;--amber:#ffab5c;--amber-bg:#3a2a12;--red:#ff7b7b;--red-bg:#3a1a1a;--blue-bg:#16263d;--bar:#66d17f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:12px 16px 40px}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+header h1{font-size:24px;margin:0;flex:1;min-width:180px}
+button{font:inherit;color:inherit;cursor:pointer;border:2px solid var(--line);background:var(--card);border-radius:12px;padding:8px 14px;min-height:44px;font-weight:700}
+button.pri{background:var(--green);color:#fff;border-color:var(--green)}
+.card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.card h2{font-size:20px;margin:0 0 8px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 12px}
+.kpi span{display:block;color:var(--mute);font-size:14px}.kpi b{display:block;font-size:26px;line-height:1.15}.kpi small{color:var(--mute)}
+.kpi.g{background:var(--green-bg)}.kpi.a{background:var(--amber-bg)}.kpi.b{background:var(--blue-bg)}
+.alert{border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700}
+.alert.amber{background:var(--amber-bg);border:2px solid var(--amber)}.alert.red{background:var(--red-bg);border:2px solid var(--red)}.alert.ok{background:var(--green-bg);border:2px solid var(--green)}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:16px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+td.wrap-t{white-space:normal}th{font-size:13px;color:var(--mute)}td.r,th.r{text-align:right}
+tr.void td{text-decoration:line-through;color:var(--mute)}
+.tag{display:inline-block;border-radius:99px;padding:1px 10px;font-size:13px;font-weight:800}
+.tag.AGOTADO{background:var(--red-bg);color:var(--red)}.tag.POCO{background:var(--amber-bg);color:var(--amber)}.tag.OK{background:var(--green-bg);color:var(--green)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}.chips button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input{font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:10px;padding:10px 12px;min-height:46px;width:100%}
+.login{max-width:380px;margin:8vh auto 0}.login label{display:block;font-weight:700;margin:10px 0 4px}
+.err{color:var(--red);font-weight:700;min-height:1.4em;margin-top:8px}
+.muted{color:var(--mute)}.hidden{display:none!important}
+svg text{fill:var(--mute);font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="config.js"></script>
+<script>
+const CFG=window.CAJA_NUBE||{};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>(n<0?'-':'')+'$'+String(Math.abs(Math.round(Number(n)||0))).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+const TZ='America/Bogota';
+const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:TZ});
+const fDay=d=>new Date(d+'T12:00:00-05:00').toLocaleDateString('es-CO',{weekday:'short',day:'numeric',month:'short',timeZone:TZ});
+// timestamps de la vista vienen "sin zona" y ya en hora de Bogotá (UTC-5, sin horario de verano)
+const bogota=ts=>new Date(String(ts).replace(' ','T').replace(/(\.\d{3})\d*$/,'$1')+(/[zZ]|[+-]\d\d:?\d\d$/.test(ts)?'':'-05:00'));
+const ago=d=>{const m=Math.round((Date.now()-d)/60000);return m<1?'hace un momento':m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} días`};
+const MEDIOS={efectivo:'💵 Efectivo',tarjeta:'💳 Tarjeta',transferencia:'📲 Transferencia'};
+
+/* ---- sesión (se guarda en este navegador) ---- */
+let session=null;
+try{session=JSON.parse(localStorage.getItem('caja_nube_sesion')||'null')}catch(e){}
+const saveSession=s=>{session=s;try{s?localStorage.setItem('caja_nube_sesion',JSON.stringify(s)):localStorage.removeItem('caja_nube_sesion')}catch(e){}};
+const H={apikey:CFG.key,'content-type':'application/json'};
+
+async function authCall(grant,body){
+  let r;
+  try{r=await fetch(`${CFG.url}/auth/v1/token?grant_type=${grant}`,{method:'POST',headers:H,body:JSON.stringify(body)})}
+  catch(e){throw new Error('No hay conexión con la nube. Revise su internet.')}
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.msg||d.error_description||d.message||'No se pudo iniciar sesión');
+  saveSession({access_token:d.access_token,refresh_token:d.refresh_token,email:(d.user&&d.user.email)||''});
+  return d;
+}
+let renovando=null; // una sola renovación a la vez: el token de renovación se usa una vez
+function renovar(){
+  if(!renovando)renovando=authCall('refresh_token',{refresh_token:session.refresh_token}).finally(()=>{renovando=null});
+  return renovando;
+}
+async function rest(view,query=''){
+  const go=tok=>fetch(`${CFG.url}/rest/v1/${view}?${query}`,{headers:{apikey:CFG.key,Authorization:'Bearer '+tok,'Accept-Profile':CFG.schema||'caja'}});
+  const usado=session.access_token;
+  let r;
+  try{r=await go(usado)}catch(e){throw new Error('No hay conexión con la nube. Revise su internet.')}
+  if(r.status===401&&session&&session.refresh_token){ // el acceso vence: se renueva solo
+    try{if(session.access_token===usado)await renovar();r=await go(session.access_token)}
+    catch(e){saveSession(null);throw new Error('Su sesión venció. Entre de nuevo.')}
+  }
+  if(r.status===401){saveSession(null);throw new Error('Su sesión venció. Entre de nuevo.')}
+  const d=await r.json().catch(()=>null);
+  if(!r.ok){
+    if(d&&d.code==='PGRST106')throw new Error('Falta publicar el esquema "caja" en Supabase (Project Settings > API > Exposed schemas).');
+    throw new Error((d&&(d.message||d.hint))||'No se pudieron leer los datos ('+r.status+')');
+  }
+  return d;
+}
+
+/* ---- pantalla de entrada ---- */
+function renderLogin(msg=''){
+  $('#app').innerHTML=`<div class="card login"><h1 style="font-size:24px;margin:0 0 4px">Caja · Panel de los dueños</h1>
+    <p class="muted" style="margin:0 0 6px">Solo lectura. Entre con su correo.</p>
+    <form id="f"><label for="em">Correo</label><input id="em" type="email" autocomplete="username" required>
+    <label for="pw">Clave</label><input id="pw" type="password" autocomplete="current-password" required>
+    <div class="err" id="err" role="alert">${esc(msg)}</div>
+    <button class="pri" style="width:100%;margin-top:6px" type="submit">Entrar</button></form></div>`;
+  $('#f').addEventListener('submit',async e=>{
+    e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;$('#err').textContent='';
+    try{await authCall('password',{email:$('#em').value.trim(),password:$('#pw').value});await load()}
+    catch(err){$('#err').textContent=err.message;b.disabled=false}
+  });
+}
+
+/* ---- panel ---- */
+let D=null,filtro='todos',buscar='',timer=null;
+async function load(){
+  $('#app').innerHTML='<div class="card muted">Cargando…</div>';
+  try{
+    const [saldo,dias,stock,movs,det]=await Promise.all([
+      rest('v_caja_saldo','select=*'),
+      rest('v_ventas_por_dia','select=*&order=dia.desc&limit=30'),
+      rest('v_stock_actual','select=*&limit=3000'),
+      rest('v_caja_movimientos','select=*&limit=30'),
+      rest('v_ventas_detalle','select=*&limit=200')
+    ]);
+    D={saldo:saldo[0]||null,dias,stock,movs,det};
+    render();
+    clearInterval(timer);timer=setInterval(refresh,60000);
+  }catch(e){
+    if(!session)renderLogin(e.message);
+    else $('#app').innerHTML=`<div class="alert red">${esc(e.message)}</div><button data-a="retry">Reintentar</button> <button data-a="salir">Salir</button>`;
+  }
+}
+async function refresh(){ // actualización silenciosa cada minuto
+  if(!session)return;
+  try{
+    const [saldo,dias,stock,movs,det]=await Promise.all([rest('v_caja_saldo','select=*'),rest('v_ventas_por_dia','select=*&order=dia.desc&limit=30'),rest('v_stock_actual','select=*&limit=3000'),rest('v_caja_movimientos','select=*&limit=30'),rest('v_ventas_detalle','select=*&limit=200')]);
+    D={saldo:saldo[0]||null,dias,stock,movs,det};render();
+  }catch(e){if(!session){clearInterval(timer);renderLogin(e.message)}}
+}
+
+function chart(rows){
+  const r=[...rows].slice(0,14).reverse();if(!r.length)return '';
+  const max=Math.max(...r.map(x=>Number(x.total)),1),Hh=150,bw=Math.min(640/r.length,64),W=Math.max(bw*r.length,320);
+  return `<div class="scroll"><svg viewBox="0 0 ${W} ${Hh+30}" width="100%" role="img" aria-label="Ventas de los últimos días" style="min-width:420px">
+    ${r.map((x,i)=>{const h=Math.max(2,Number(x.total)/max*Hh);return `<g><rect x="${i*bw+4}" y="${Hh-h+4}" width="${bw-8}" height="${h}" rx="3" fill="var(--bar)"><title>${fDay(x.dia)}: ${money(x.total)}</title></rect>
+      <text x="${i*bw+bw/2}" y="${Hh+20}" text-anchor="middle">${esc(x.dia.slice(8))}</text></g>`}).join('')}</svg></div>`;
+}
+
+function render(){
+  const {saldo,dias,stock,movs,det}=D;
+  if(!saldo){
+    $('#app').innerHTML=`<div class="alert amber">No hay datos para mostrar. Puede ser que su correo no esté autorizado como dueño, o que la caja todavía no haya enviado nada.</div>
+      <p class="muted">Sesión: ${esc(session.email)}</p><button data-a="salir">Salir</button>`;return;
+  }
+  const hoy=dias.find(d=>d.dia===today()),ayer=dias.find(d=>d.dia===(()=>{const t=new Date(today()+'T12:00:00Z');t.setUTCDate(t.getUTCDate()-1);return t.toISOString().slice(0,10)})());
+  const ult=saldo.ultima_sincronizacion?bogota(saldo.ultima_sincronizacion):null,min=ult?(Date.now()-ult)/60000:Infinity;
+  const agot=stock.filter(s=>s.estado==='AGOTADO').length,poco=stock.filter(s=>s.estado==='POCO').length;
+  const q=buscar.trim().toLowerCase();
+  const lista=stock.filter(s=>(filtro==='todos'||s.estado===filtro)&&(!q||(s.producto+' '+s.categoria).toLowerCase().includes(q))).slice(0,150);
+  // ventas agrupadas por número
+  const ventas=[];const idx={};
+  det.forEach(l=>{let v=idx[l.venta];if(!v){v=idx[l.venta]={id:l.venta,fecha:l.fecha,medio:l.medio_pago,estado:l.estado,total:0,items:[]};ventas.push(v)}v.total+=Number(l.total_linea);v.items.push(`${l.cantidad}× ${l.producto}${Number(l.descuento)?` (desc. −${money(l.descuento)})`:''}`)});
+  $('#app').innerHTML=`
+  <header><h1>Caja · ${esc(saldo.tienda)}</h1><button data-a="refrescar">🔄 Actualizar</button><button data-a="salir">Salir</button></header>
+  <div class="alert ${min>15?'amber':'ok'}" id="sync">${ult?(min>15?`⚠ La caja no ha enviado datos ${ago(ult)}. Puede estar sin internet o apagada: lo que ve abajo puede estar atrasado.`:`☁ Datos al día · última sincronización ${ago(ult)}`):'☁ Aún no hay sincronización'}</div>
+  <div class="kpis">
+    <div class="kpi g"><span>Vendido hoy</span><b>${money(hoy?hoy.total:0)}</b><small>${hoy?hoy.ventas:0} ventas${ayer?` · ayer ${money(ayer.total)}`:''}</small></div>
+    <div class="kpi b"><span>💵 Efectivo hoy</span><b>${money(hoy?hoy.efectivo:0)}</b></div>
+    <div class="kpi b"><span>💳 Tarjeta hoy</span><b>${money(hoy?hoy.tarjeta:0)}</b></div>
+    <div class="kpi b"><span>📲 Transferencia hoy</span><b>${money(hoy?hoy.transferencia:0)}</b></div>
+    <div class="kpi a"><span>Descuentos hoy</span><b>${money(hoy?hoy.descuentos:0)}</b></div>
+    <div class="kpi g"><span>En la caja (efectivo)</span><b>${money(saldo.en_caja_efectivo)}</b><small>según la caja</small></div>
+  </div>
+  <div class="card"><h2>Ventas de los últimos días</h2>${chart(dias)}
+    <div class="scroll"><table><tr><th>Día</th><th class="r">Ventas</th><th class="r">Efectivo</th><th class="r">Tarjeta</th><th class="r">Transf.</th><th class="r">Descuentos</th><th class="r">Total</th></tr>
+    ${dias.slice(0,14).map(d=>`<tr><td>${fDay(d.dia)}</td><td class="r">${d.ventas}</td><td class="r">${money(d.efectivo)}</td><td class="r">${money(d.tarjeta)}</td><td class="r">${money(d.transferencia)}</td><td class="r">${money(d.descuentos)}</td><td class="r"><b>${money(d.total)}</b></td></tr>`).join('')||'<tr><td colspan="7" class="muted">Sin ventas todavía</td></tr>'}</table></div></div>
+  <div class="card"><h2>Stock <small class="muted">· ${agot} agotados · ${poco} por agotarse · ${stock.length} productos</small></h2>
+    <div class="chips">${[['todos','Todos'],['AGOTADO','Agotados'],['POCO','Pocos']].map(([k,l])=>`<button data-f="${k}" class="${filtro===k?'on':''}">${l}</button>`).join('')}</div>
+    <input id="q" placeholder="🔍 Buscar producto..." value="${esc(buscar)}" aria-label="Buscar producto">
+    <div class="scroll" style="margin-top:8px"><table><tr><th>Producto</th><th>Categoría</th><th class="r">Stock</th><th class="r">Precio</th><th>Estado</th></tr>
+    ${lista.map(s=>`<tr><td>${esc(s.producto)}</td><td>${esc(s.categoria)}</td><td class="r"><b>${s.stock}</b></td><td class="r">${money(s.precio)}</td><td><span class="tag ${esc(s.estado)}">${esc(s.estado)}</span></td></tr>`).join('')||'<tr><td colspan="5" class="muted">No hay productos con ese filtro</td></tr>'}</table></div>
+    ${stock.length>150?'<p class="muted">Se muestran 150; escriba en el buscador para ver otros.</p>':''}</div>
+  <div class="card"><h2>Dinero de la caja (retiros y cambio)</h2><div class="scroll"><table><tr><th>Cuándo</th><th>Qué</th><th>Motivo</th><th>Quién</th><th class="r">Monto</th><th class="r">Quedó en caja</th></tr>
+    ${movs.map(m=>`<tr><td>${esc(m.fecha)}</td><td>${m.tipo==='RETIRO'?'⬆ Retiro':'⬇ Se agregó'}</td><td class="wrap-t">${esc(m.motivo)}</td><td>${esc(m.quien)}</td><td class="r"><b style="color:${m.tipo==='RETIRO'?'var(--red)':'var(--green)'}">${m.tipo==='RETIRO'?'−':'+'}${money(m.monto)}</b></td><td class="r">${money(m.quedo_en_caja)}</td></tr>`).join('')||'<tr><td colspan="6" class="muted">Sin movimientos</td></tr>'}</table></div></div>
+  <div class="card"><h2>Últimas ventas</h2><div class="scroll"><table><tr><th>N°</th><th>Cuándo</th><th>Pago</th><th>Detalle</th><th class="r">Total</th></tr>
+    ${ventas.slice(0,40).map(v=>`<tr class="${v.estado==='ANULADA'?'void':''}"><td>${v.id}</td><td>${esc(v.fecha)}</td><td>${MEDIOS[v.medio]||esc(v.medio)}</td><td class="wrap-t">${esc(v.items.join(', '))}${v.estado==='ANULADA'?' <b>(ANULADA)</b>':''}</td><td class="r"><b>${money(v.total)}</b></td></tr>`).join('')||'<tr><td colspan="5" class="muted">Sin ventas</td></tr>'}</table></div></div>
+  <p class="muted">Solo lectura · ${esc(session.email)} · se actualiza cada minuto</p>`;
+}
+
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-a]'),f=e.target.closest('[data-f]');
+  if(f){filtro=f.dataset.f;render()}
+  else if(a){
+    if(a.dataset.a==='salir'){saveSession(null);clearInterval(timer);D=null;renderLogin()}
+    else if(a.dataset.a==='refrescar'||a.dataset.a==='retry')load();
+  }
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='q'){buscar=e.target.value;const p=e.target.selectionStart;render();const i=$('#q');i.focus();i.setSelectionRange(p,p)}
+});
+(function start(){
+  if(!CFG.url||CFG.url.includes('SU-PROYECTO')||!CFG.key||CFG.key==='SU_LLAVE_PUBLICABLE'){
+    $('#app').innerHTML='<div class="alert amber">Falta configurar <code>config.js</code> con la URL y la llave publicable de su proyecto de Supabase.</div>';return;
+  }
+  session?load():renderLogin();
+})();
+</script>
+</body>
+</html>
