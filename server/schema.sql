@@ -131,3 +131,13 @@ CREATE TABLE IF NOT EXISTS sync_status (         -- una sola fila: cómo va la s
   last_error text
 );
 INSERT INTO sync_status (id) VALUES (1) ON CONFLICT DO NOTHING;
+
+-- ===== Foto de cada producto (se guarda aquí para que la caja funcione sin internet) =====
+CREATE SEQUENCE IF NOT EXISTS image_seq;                       -- versión única: nunca se repite, aunque se borre y se vuelva a subir
+ALTER TABLE products ADD COLUMN IF NOT EXISTS image_ver bigint NOT NULL DEFAULT 0;   -- 0 = sin foto
+CREATE TABLE IF NOT EXISTS product_images (
+  product_id bigint PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
+  mime       text  NOT NULL CHECK (mime IN ('image/jpeg','image/png','image/webp')),
+  data       bytea NOT NULL CHECK (octet_length(data) BETWEEN 100 AND 1048576),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);

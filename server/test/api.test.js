@@ -8,10 +8,10 @@ const { createApp, migrate } = require('../app');
 const URL = process.env.DATABASE_URL_TEST || 'postgres://caja:caja_dev@localhost:5432/caja_test';
 let pool, server, base, token, adminId;
 
-async function api(method, path, body, { tok = token, raw } = {}) {
+async function api(method, path, body, { tok = token, raw, ctype } = {}) {
   const headers = {};
   if (tok) headers['x-admin-token'] = tok;
-  if (body !== undefined) headers['content-type'] = raw ? 'application/octet-stream' : 'application/json';
+  if (body !== undefined) headers['content-type'] = raw ? (ctype || 'application/octet-stream') : 'application/json';
   const res = await fetch(base + path, { method, headers, body: raw ? body : body === undefined ? undefined : JSON.stringify(body) });
   const ct = res.headers.get('content-type') || '';
   const data = ct.includes('json') ? await res.json() : Buffer.from(await res.arrayBuffer());
@@ -222,4 +222,31 @@ test('copia de seguridad JSON no incluye PIN', async () => {
   const txt = JSON.stringify(b.data);
   assert.ok(!txt.includes('pin_hash') && !txt.includes('scrypt'));
   assert.ok(b.data.sales.length > 0 && b.data.admins.length === 2);
+});
+
+test('foto del producto: solo el administrador la cambia, se valida por contenido y la versión nunca se repite', async () => {
+  const p = (await api('POST', '/api/products', { name: 'Con foto', price: 5000, stock: 3 })).data;
+  const png = n => Buffer.concat([Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), Buffer.alloc(n, 7)]);
+  const put = (body, ctype = 'image/png', tok = token) => api('PUT', `/api/products/${p.id}/image`, body, { raw: true, ctype, tok });
+  assert.equal((await put(png(300), 'image/png', null)).status, 401, 'sin PIN');
+  assert.equal((await put(Buffer.from('<html>hola</html>'.repeat(20)))).status, 400, 'HTML disfrazado de PNG');
+  assert.equal((await put(png(300), 'text/plain')).status, 400, 'tipo no permitido');
+  assert.equal((await put(png(1.2e6))).status, 413, 'más de 1 MB');
+  assert.equal((await put(png(10))).status, 400, 'demasiado pequeña para ser una imagen');
+  const a = await put(png(300));
+  assert.equal(a.status, 200); assert.ok(a.data.image_ver > 0);
+  const lista = (await api('GET', '/api/products', undefined, { tok: null })).data.find(x => x.id === p.id);
+  assert.equal(lista.image_ver, a.data.image_ver);
+  const res = await fetch(`${base}/api/products/${p.id}/image?v=${a.data.image_ver}`);
+  assert.equal(res.status, 200); assert.equal(res.headers.get('content-type'), 'image/png');
+  assert.match(res.headers.get('cache-control'), /immutable/); assert.equal((await res.arrayBuffer()).byteLength, 308);
+  const b = await put(png(400));
+  assert.ok(b.data.image_ver > a.data.image_ver, 'cada cambio trae una versión nueva (el navegador no muestra la foto vieja)');
+  assert.equal((await api('DELETE', `/api/products/${p.id}/image`, undefined, { tok: null })).status, 401);
+  assert.equal((await api('DELETE', `/api/products/${p.id}/image`)).data.image_ver, 0);
+  assert.equal((await fetch(`${base}/api/products/${p.id}/image`)).status, 404);
+  const c = await put(png(300));
+  assert.ok(c.data.image_ver > b.data.image_ver, 'tras borrar y volver a subir la versión sigue creciendo');
+  assert.equal((await put(png(300), 'image/png')).status, 200);
+  assert.equal((await api('PUT', `/api/products/999999/image`, png(300), { raw: true, ctype: 'image/png' })).status, 404);
 });

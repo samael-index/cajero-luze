@@ -127,7 +127,7 @@ function createApp({ pool, publicDir, sync }) {
   app.get('/api/bootstrap', wrap(async (req, res) => {
     const [settings, products, admins] = await Promise.all([
       getSettings(),
-      pool.query(`SELECT id, name, price, stock, category, emoji FROM products WHERE active ORDER BY name`),
+      pool.query(`SELECT id, name, price, stock, category, image_ver FROM products WHERE active ORDER BY name`),
       pool.query('SELECT id, name FROM admins ORDER BY id')
     ]);
     res.json({ settings, products: products.rows, admins: admins.rows, needs_setup: admins.rows.length === 0 });
@@ -243,7 +243,7 @@ function createApp({ pool, publicDir, sync }) {
   const nameTaken = e => { if (e.code === '23505') throw new HttpError(409, 'nombre_repetido', 'Ya existe un producto con ese nombre'); throw e; };
 
   app.get('/api/products', wrap(async (req, res) => {
-    const { rows } = await pool.query(`SELECT id, name, price, cost, stock, category, emoji FROM products WHERE active ORDER BY name`);
+    const { rows } = await pool.query(`SELECT id, name, price, cost, stock, category, image_ver FROM products WHERE active ORDER BY name`);
     // el costo solo lo ve un administrador
     const a = await adminFrom(req);
     res.json(rows.map(r => (a ? r : { ...r, cost: undefined })));
@@ -302,10 +302,57 @@ function createApp({ pool, publicDir, sync }) {
     } catch (e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); }
   }));
 
+  /* ---------- foto del producto ---------- */
+  const imgBody = express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '1mb' });
+  function sniffImage(b) {   // el tipo se comprueba por el contenido, no por lo que diga el navegador
+    if (b.length < 12) return null;
+    if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return 'image/jpeg';
+    if (b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))) return 'image/png';
+    if (b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP') return 'image/webp';
+    return null;
+  }
+  app.put('/api/products/:id/image', requireAdmin, imgBody, wrap(async (req, res) => {
+    const id = intField(req.params.id, 'el producto', { min: 1 });
+    if (!Buffer.isBuffer(req.body) || !req.body.length) throw bad('Envíe una imagen JPG, PNG o WebP de hasta 1 MB');
+    if (req.body.length < 100) throw bad('Esa imagen es demasiado pequeña');
+    const mime = sniffImage(req.body);
+    if (!mime) throw bad('Ese archivo no es una imagen válida (JPG, PNG o WebP)');
+    const c = await pool.connect();
+    try {
+      await c.query('BEGIN');
+      const { rows: [p] } = await c.query('SELECT id FROM products WHERE id = $1 AND active FOR UPDATE', [id]);
+      if (!p) throw new HttpError(404, 'no_existe', 'El producto no existe');
+      await c.query(`INSERT INTO product_images (product_id, mime, data) VALUES ($1,$2,$3)
+                     ON CONFLICT (product_id) DO UPDATE SET mime = EXCLUDED.mime, data = EXCLUDED.data, updated_at = now()`, [id, mime, req.body]);
+      const { rows: [r] } = await c.query(`UPDATE products SET image_ver = nextval('image_seq'), updated_at = now() WHERE id = $1 RETURNING image_ver`, [id]);
+      await c.query('COMMIT');
+      res.json({ image_ver: r.image_ver });
+    } catch (e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); }
+  }));
+  app.get('/api/products/:id/image', wrap(async (req, res) => {
+    const id = intField(req.params.id, 'el producto', { min: 1 });
+    const { rows: [r] } = await pool.query('SELECT mime, data FROM product_images WHERE product_id = $1', [id]);
+    if (!r) throw new HttpError(404, 'sin_foto', 'Este producto no tiene foto');
+    // la dirección lleva ?v=<versión>: si cambia la foto cambia la dirección, así que se puede guardar para siempre
+    res.set({ 'Content-Type': r.mime, 'Cache-Control': 'public, max-age=31536000, immutable', 'Content-Security-Policy': "default-src 'none'" });
+    res.send(r.data);
+  }));
+  app.delete('/api/products/:id/image', requireAdmin, wrap(async (req, res) => {
+    const id = intField(req.params.id, 'el producto', { min: 1 });
+    const c = await pool.connect();
+    try {
+      await c.query('BEGIN');
+      await c.query('DELETE FROM product_images WHERE product_id = $1', [id]);
+      await c.query('UPDATE products SET image_ver = 0, updated_at = now() WHERE id = $1', [id]);
+      await c.query('COMMIT');
+      res.json({ image_ver: 0 });
+    } catch (e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); }
+  }));
+
   /* ---------- Excel: plantilla, exportar, importar ---------- */
   const COLS = [
     ['Nombre', 'name', 34], ['Precio', 'price', 14], ['Costo', 'cost', 14],
-    ['Stock', 'stock', 10], ['Categoría', 'category', 20], ['Emoji', 'emoji', 8]
+    ['Stock', 'stock', 10], ['Categoría', 'category', 20]
   ];
   async function sendXlsx(res, filename, rows) {
     const wb = new ExcelJS.Workbook();
@@ -319,10 +366,10 @@ function createApp({ pool, publicDir, sync }) {
     res.send(Buffer.from(buf));
   }
   app.get('/api/products/template.xlsx', wrap((req, res) => sendXlsx(res, 'plantilla-productos.xlsx', [
-    { name: 'Cúpula Margarita', price: 6000, cost: 0, stock: 12, category: 'Cúpulas', emoji: '🕯️' },
-    { name: 'Sagrada Familia', price: 16000, cost: 0, stock: 8, category: 'Cúpulas', emoji: '🕯️' },
-    { name: 'Kit deseos blancos', price: 25000, cost: 0, stock: 6, category: 'Kits', emoji: '🎁' },
-    { name: 'Ramo 3x2 Virgen', price: 27000, cost: 0, stock: 5, category: 'Ramos', emoji: '💐' }
+    { name: 'Cúpula Margarita', price: 6000, cost: 0, stock: 12, category: 'Cúpulas' },
+    { name: 'Sagrada Familia', price: 16000, cost: 0, stock: 8, category: 'Cúpulas' },
+    { name: 'Kit deseos blancos', price: 25000, cost: 0, stock: 6, category: 'Kits' },
+    { name: 'Ramo 3x2 Virgen', price: 27000, cost: 0, stock: 5, category: 'Ramos' }
   ])));
   app.get('/api/products/export.xlsx', requireAdmin, wrap(async (req, res) => {
     const { rows } = await pool.query('SELECT name, price, cost, stock, category, emoji FROM products WHERE active ORDER BY name');

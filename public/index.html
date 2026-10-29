@@ -58,15 +58,22 @@ h1,h2,h3{font-family:var(--serif)}
 .cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;flex:none}
 .chip{padding:8px 16px;background:var(--card);border:2px solid var(--line);font-weight:700;border-radius:99px;min-height:46px}
 .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.grid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start;padding:2px 2px 20px}
-.prod{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:112px;padding:8px;border:3px solid rgba(90,61,43,.22);text-align:center}
-.prod .em{font-size:30px;line-height:1}
-.prod .nm{font-weight:800;font-size:19px;line-height:1.1;overflow-wrap:anywhere}
-.prod .pr{font-weight:800;font-size:22px;color:var(--green-d)}
-.prod .st{font-size:15px;color:var(--mute)}
-.prod.low .st{color:var(--amber);font-weight:700}
-.prod.out{opacity:.45}
-.prod.out .st{color:var(--red);font-weight:800}
+.grid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;align-content:start;grid-auto-rows:max-content;padding:2px 2px 20px}
+.prod{display:flex;flex-direction:column;align-items:stretch;padding:0;overflow:hidden;border:3px solid rgba(90,61,43,.22);text-align:center;background:var(--card)}
+.prod .ph{position:relative;flex:none;height:0;padding-top:75%;background:#EFE4D3;overflow:hidden}   /* alto = 3/4 del ancho: recorta poco la foto cuadrada */
+.prod .ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.prod .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 44px/1 var(--serif);color:var(--moka);opacity:.55}
+.prod .bd{padding:6px 8px 8px}
+.prod .nm{display:block;font-weight:800;font-size:19px;line-height:1.15;overflow-wrap:anywhere;min-height:2.3em;display:flex;align-items:center;justify-content:center}
+.prod .pr{display:block;font-weight:800;font-size:22px;color:var(--green-d)}
+.prod .bst{position:absolute;top:6px;right:6px;border-radius:99px;padding:2px 10px;font-weight:800;font-size:14px;background:rgba(255,252,247,.94);color:var(--mute)}
+.prod .bcart{position:absolute;top:6px;left:6px;background:var(--moka);color:#fff;min-width:32px;height:32px;padding:0 8px;border-radius:99px;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center}
+.prod.low .bst{background:var(--amber);color:#fff}
+.prod.out{opacity:.5}
+.prod.out .bst{background:var(--red);color:#fff}
+.th{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#EFE4D3;flex:none}
+.th.big{width:120px;height:120px;border-radius:12px}
+.th.sm{width:58px;height:58px}
 .empty{padding:30px 16px;text-align:center;color:var(--mute);font-size:21px}
 .more{grid-column:1/-1;text-align:center;color:var(--mute);padding:6px}
 
@@ -75,7 +82,7 @@ h1,h2,h3{font-family:var(--serif)}
 .ticket{flex:1;min-height:60px;overflow:auto}
 .line{padding:6px 0;border-bottom:1px solid #EFE6D8}
 .line .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
-.line .n{font-weight:800;font-size:19px;line-height:1.1}
+.line .n{font-weight:800;font-size:19px;line-height:1.1;display:flex;align-items:center;gap:8px}
 .line .s{font-weight:800;font-size:20px;white-space:nowrap}
 .line .s s{font-weight:400;color:var(--mute);font-size:16px;margin-right:4px}
 .line .tag{color:var(--amber);font-weight:800;font-size:16px}
@@ -173,7 +180,8 @@ label input{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400
 /* pantalla vertical (el Yoga girado o en modo tableta) */
 @media (max-width:1250px){ .brand span{display:none} }
 @media (max-width:1000px){
-  .sell{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,38%) minmax(0,1fr)}
+  :root{--btn:clamp(44px,5.2vh,62px)}
+  .sell{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,40%) minmax(0,1fr)}
   .left{grid-column:1/-1}
   .clock{display:none}
 }
@@ -227,10 +235,10 @@ function setOffline(off){
   b.innerHTML=off?'<div class="offline">⚠ Sin conexión con la caja. Revise que el programa de la caja esté abierto.</div>':'';
   return was&&!off;
 }
-async function api(method,path,body,{raw,blob}={}){
+async function api(method,path,body,{raw,blob,ctype}={}){
   const h={};
   if(admin){h['x-admin-token']=admin.token;lastAdminUse=Date.now();keepAdmin()}
-  if(body!==undefined)h['content-type']=raw?'application/octet-stream':'application/json';
+  if(body!==undefined)h['content-type']=raw?(ctype||'application/octet-stream'):'application/json';
   let res;
   try{res=await fetch(path,{method,headers:h,body:body===undefined?undefined:raw?body:JSON.stringify(body)})}
   catch(e){setOffline(true);throw new ApiError(0,'sin_conexion','No hay conexión con la caja')}
@@ -254,6 +262,8 @@ S.sync={enabled:false};
 const ui={tab:'vender',cat:'',q:'',cart:[],pay:'',method:'efectivo',busy:false,pq:'',period:'hoy',from:'',to:'',rep:null,cash:null,moves:[]};
 const ADMIN_TABS=['ventas','ajustes'];
 const prod=id=>S.products.find(p=>p.id===id);
+const imgUrl=p=>`/api/products/${p.id}/image?v=${p.image_ver}`;
+const foto=(p,cls='')=>p.image_ver>0?`<img class="${cls}" src="${imgUrl(p)}" alt="" loading="lazy" decoding="async">`:`<span class="noimg">${esc((p.name||'?').trim().charAt(0).toUpperCase())}</span>`;
 const cartQty=id=>(ui.cart.find(l=>l.pid===id)||{qty:0}).qty;
 const lineGross=l=>{const p=prod(l.pid);return p?p.price*l.qty:0};
 const lineNet=l=>lineGross(l)-(l.disc||0);
@@ -445,16 +455,16 @@ function vVender(){
   const total=cartTotal(),has=ui.pay!=='',paid=Number(ui.pay||0),diff=paid-total;
 
   const grid=list.length?list.map(p=>{
-    const left=p.stock-cartQty(p.id);
+    const left=p.stock-cartQty(p.id),inCart=cartQty(p.id);
     const cls=p.stock<=0?'out':isLow(p)?'low':'';
-    return `<button class="prod ${cls}" style="background:${TILE[hue(p.name)%TILE.length]}" data-act="add" data-id="${p.id}">
-      ${p.emoji?`<span class="em">${esc(p.emoji)}</span>`:''}<span class="nm">${esc(p.name)}</span><span class="pr">${money(p.price)}</span>
-      <span class="st">${p.stock<=0?'AGOTADO':'Quedan '+left}</span></button>`}).join('')+(all.length>LIM?`<div class="more">Hay ${all.length} productos. Escriba en el buscador para encontrar otros.</div>`:'')
+    return `<button class="prod ${cls}" data-act="add" data-id="${p.id}">
+      <span class="ph">${foto(p)}${inCart?`<span class="bcart">${inCart}</span>`:''}<span class="bst">${p.stock<=0?'AGOTADO':'Quedan '+left}</span></span>
+      <span class="bd"><span class="nm">${esc(p.name)}</span><span class="pr">${money(p.price)}</span></span></button>`}).join('')+(all.length>LIM?`<div class="more">Hay ${all.length} productos. Escriba en el buscador para encontrar otros.</div>`:'')
     :`<div class="empty" style="grid-column:1/-1">${S.products.length?'No se encontró ningún producto.':'Todavía no hay productos.<br><br><button class="btn ok" data-act="tab" data-v="productos">📦 Ir a PRODUCTOS para agregarlos</button>'}</div>`;
 
   const lines=ui.cart.length?ui.cart.map(l=>{const p=prod(l.pid);if(!p)return '';
     const g=lineGross(l),d=l.disc||0;
-    return `<div class="line"><div class="top"><span class="n">${esc(p.name)}</span><span class="s">${d?`<s>${money(g)}</s>`:''}${money(g-d)}</span></div>
+    return `<div class="line"><div class="top"><span class="n">${p.image_ver>0?`<img class="th" src="${imgUrl(p)}" alt="">`:''}${esc(p.name)}</span><span class="s">${d?`<s>${money(g)}</s>`:''}${money(g-d)}</span></div>
       ${d?`<div class="tag">Descuento −${money(d)} (${pctText(d/g*100)})</div>`:''}
       <div class="ctl"><button data-act="minus" data-id="${p.id}">−</button><b>${l.qty}</b><button data-act="plus" data-id="${p.id}">+</button>
       <button class="pc" data-act="desc" data-id="${p.id}">% Descuento</button><button class="rm" data-act="quitar" data-id="${p.id}">✕</button></div></div>`}).join('')
@@ -501,7 +511,7 @@ function vProductos(){
   const list=found.slice(0,100);
   const rows=list.map(p=>{
     const cls=p.stock<=0?'out':isLow(p)?'low':'';
-    return `<div class="prow"><div class="t">${esc(p.emoji||'')} ${esc(p.name)}<small>${money(p.price)}${p.category?' · '+esc(p.category):''}</small></div>
+    return `<div class="prow"><div class="t" style="display:flex;align-items:center;gap:12px">${p.image_ver>0?`<img class="th sm" src="${imgUrl(p)}" alt="" loading="lazy">`:`<span class="th sm" style="display:flex;align-items:center;justify-content:center;font:700 26px var(--serif);color:var(--moka)">${esc((p.name||'?').charAt(0).toUpperCase())}</span>`}<span>${esc(p.name)}<small>${money(p.price)}${p.category?' · '+esc(p.category):''}</small></span></div>
       <div class="acts"><div class="stock ${cls}">${p.stock}<small>${p.stock<=0?'AGOTADO':isLow(p)?'quedan pocos':'en stock'}</small></div>
       <button class="btn ok sm" data-act="cargar" data-id="${p.id}">➕ CARGAR</button>
       <button class="btn sm" data-act="editar" data-id="${p.id}">✏️ Editar${admin?'':' 🔒'}</button></div></div>`}).join('');
@@ -673,21 +683,69 @@ function discountModal(line){
   });
 }
 
+/* ---- foto del producto: se recorta cuadrada y se reduce a 480 px (liviana y nítida) ---- */
+function cuadrado(src){
+  const w=src.videoWidth||src.width,h=src.videoHeight||src.height,l=Math.min(w,h);
+  const c=document.createElement('canvas');c.width=c.height=480;
+  const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,480,480);
+  x.drawImage(src,(w-l)/2,(h-l)/2,l,l,0,0,480,480);
+  return new Promise(res=>c.toBlob(res,'image/jpeg',0.85));
+}
+/* cámara del equipo (el Yoga tiene); devuelve la foto o null si se cancela */
+function tomarFoto(){
+  return new Promise(res=>{
+    const m=modal(`<h2>Tome la foto</h2><p class="muted">Ponga el producto en el centro del cuadro.</p>
+      <div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:1/1;max-height:60vh;margin:0 auto;width:min(100%,60vh)">
+        <video id="cam" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video></div>
+      <div class="err" id="camerr"></div>
+      <div class="row"><button class="btn bad" data-r="no">CANCELAR</button><button class="btn ok" data-r="ok">📸 TOMAR</button></div>`);
+    let stream=null;const stop=()=>{if(stream)stream.getTracks().forEach(t=>t.stop())};
+    const v=m.querySelector('#cam');
+    (navigator.mediaDevices&&navigator.mediaDevices.getUserMedia?navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}},audio:false}):Promise.reject(new Error('sin cámara')))
+      .then(s=>{stream=s;v.srcObject=s}).catch(()=>{m.querySelector('#camerr').textContent='No se pudo abrir la cámara. Use "Elegir imagen".'});
+    m.addEventListener('click',async e=>{
+      const r=e.target.closest('[data-r]');if(!r)return;
+      if(r.dataset.r==='no'){stop();m.remove();return res(null)}
+      if(!v.videoWidth)return toast('La cámara todavía no está lista');
+      const b=await cuadrado(v);stop();m.remove();res(b);
+    });
+  });
+}
+
 async function productForm(p){
-  const isNew=!p;p=p||{name:'',price:'',cost:'',stock:'',category:'',emoji:''};
+  const isNew=!p;p=p||{name:'',price:'',cost:'',stock:'',category:'',image_ver:0};
+  let nueva=null,quitar=false,prev=null;   // foto elegida (aún sin guardar)
   const m=modal(`<h2>${isNew?'Agregar producto':'Editar producto'}</h2>
-    <label>Nombre<input id="f_name" value="${esc(p.name)}" placeholder="Ej: Pan francés"></label>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div id="fprev" style="flex:none"></div>
+      <div style="display:grid;gap:8px;flex:1"><button class="btn sm" data-r="cam">📸 Tomar foto</button><button class="btn sm" data-r="file">🖼 Elegir imagen</button>
+        <button class="btn sm hidden" id="fquit" data-r="quit">Quitar foto</button></div></div>
+    <input type="file" id="ffile" accept="image/*" hidden>
+    <label>Nombre<input id="f_name" value="${esc(p.name)}" placeholder="Ej: Cúpula Margarita"></label>
     <div class="g2"><label>Precio de venta ($)<input id="f_price" inputmode="numeric" value="${p.price||''}"></label>
     <label>${isNew?'Cuántos hay':'Cuántos hay (conteo real)'}<input id="f_stock" inputmode="numeric" value="${p.stock||''}"></label>
     <label>Costo ($, opcional)<input id="f_cost" inputmode="numeric" value="${p.cost||''}"></label>
-    <label>Categoría (opcional)<input id="f_cat" value="${esc(p.category)}" placeholder="Ej: Bebidas"></label>
-    <label>Dibujo (emoji, opcional)<input id="f_emoji" value="${esc(p.emoji)}" maxlength="4"></label></div>
+    <label>Categoría (opcional)<input id="f_cat" value="${esc(p.category)}" placeholder="Ej: Cúpulas"></label></div>
     <div class="row"><button class="btn bad" data-r="no">CANCELAR</button><button class="btn ok" data-r="ok">GUARDAR</button></div>
     ${isNew?'':'<button class="btn sm" data-r="del">🗑 Eliminar este producto</button>'}`);
+  const pintar=()=>{
+    const el=m.querySelector('#fprev');
+    const src=prev||(!quitar&&p.image_ver>0?imgUrl(p):null);
+    el.innerHTML=src?`<img class="th big" src="${src}" alt="">`:`<div class="th big" style="display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;color:var(--mute);padding:6px">Sin foto</div>`;
+    m.querySelector('#fquit').classList.toggle('hidden',!src);
+  };pintar();
+  const elegir=blob=>{if(!blob)return;nueva=blob;quitar=false;if(prev)URL.revokeObjectURL(prev);prev=URL.createObjectURL(blob);pintar()};
+  m.querySelector('#ffile').addEventListener('change',async e=>{
+    const f=e.target.files[0];e.target.value='';if(!f)return;
+    try{elegir(await cuadrado(await createImageBitmap(f)))}catch(err){toast('No se pudo leer esa imagen')}
+  });
   m.addEventListener('click',async e=>{
     const r=e.target.closest('[data-r]');if(!r)return;
     try{
-      if(r.dataset.r==='no')return m.remove();
+      if(r.dataset.r==='cam')return elegir(await tomarFoto());
+      if(r.dataset.r==='file')return m.querySelector('#ffile').click();
+      if(r.dataset.r==='quit'){nueva=null;if(prev){URL.revokeObjectURL(prev);prev=null}quitar=true;return pintar()}
+      if(r.dataset.r==='no'){if(prev)URL.revokeObjectURL(prev);return m.remove()}
       if(r.dataset.r==='del'){
         if(await confirmBox({title:'¿Eliminar '+p.name+'?',text:'Las ventas anteriores se conservan.',ok:'SÍ, ELIMINAR',danger:true})){
           await adm(()=>api('DELETE','/api/products/'+p.id));m.remove();await boot();render();
@@ -697,9 +755,15 @@ async function productForm(p){
       const num=s=>Number(String(s).replace(/[^\d]/g,''))||0;
       if(!v('#f_name'))return toast('Escriba el nombre del producto');
       if(num(v('#f_price'))<=0)return toast('Escriba el precio de venta');
-      const body={name:v('#f_name'),price:num(v('#f_price')),cost:num(v('#f_cost')),stock:num(v('#f_stock')),category:v('#f_cat'),emoji:v('#f_emoji')};
-      const ok=await adm(()=>isNew?api('POST','/api/products',body):api('PUT','/api/products/'+p.id,body));
-      if(ok===undefined)return;
+      const body={name:v('#f_name'),price:num(v('#f_price')),cost:num(v('#f_cost')),stock:num(v('#f_stock')),category:v('#f_cat')};
+      const saved=await adm(async()=>{
+        const row=isNew?await api('POST','/api/products',body):await api('PUT','/api/products/'+p.id,body);
+        if(nueva)await api('PUT',`/api/products/${row.id}/image`,nueva,{raw:true,ctype:'image/jpeg'});
+        else if(quitar&&p.image_ver>0)await api('DELETE',`/api/products/${row.id}/image`);
+        return row;
+      });
+      if(saved===undefined)return;
+      if(prev)URL.revokeObjectURL(prev);
       m.remove();await boot();render();toast('Guardado ✔');
     }catch(err){toast(err.message)}
   });

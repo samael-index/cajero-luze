@@ -29,9 +29,19 @@ El modo administrador se cierra solo a los 10 minutos sin usarlo. 5 PIN errados 
 ## Descuentos
 En la cuenta, cada producto tiene el botón **% Descuento**: se puede escribir **el precio final** ("te lo dejo en 18.000") y el sistema muestra cuánto y qué porcentaje se descontó, o escribir **el porcentaje** y ver cómo queda el precio. Si luego cambia la cantidad, el descuento se quita (para no dar uno que ya no corresponde). El reporte muestra los descuentos dados.
 
+## Foto de cada producto
+En la venta, cada producto se ve con **su foto arriba y el nombre debajo** (más el precio y cuántas quedan), para reconocerlo sin leer. En la cuenta aparece una miniatura junto al nombre.
+- **Poner la foto:** Productos → *Editar* (o *Agregar producto*) → **📸 Tomar foto** (usa la cámara del equipo) o **🖼 Elegir imagen**. La foto se recorta cuadrada desde el centro y se reduce a 480×480 (unos 10 KB), así que ponga el producto en el centro del cuadro.
+- **Sin foto:** la ficha muestra la inicial del nombre.
+- **Sin internet:** las fotos se guardan en la base local de la caja, así que siempre se ven.
+- Solo el administrador cambia fotos. Se aceptan JPG, PNG y WebP de hasta 1 MB (el tipo se comprueba por el contenido del archivo).
+
+## Compartir el stock con el sistema "Control de Stock"
+Ver [`INTEGRACION-STOCK.md`](INTEGRACION-STOCK.md): propuesta (aún no aplicada) para que la caja y su sistema actual usen el mismo stock.
+
 ## Cargar productos
 - **Uno por uno:** Productos → AGREGAR PRODUCTO.
-- **Muchos a la vez (sin límite de cantidad):** Productos → *Plantilla de Excel* → llenarla (columnas Nombre, Precio, Costo, Stock, Categoría, Emoji) → IMPORTAR DESDE EXCEL. Se ve una vista previa; los productos con el mismo nombre se **actualizan** y se puede elegir si las cantidades **se suman** al stock o lo **reemplazan**. Hasta 20.000 filas por archivo.
+- **Muchos a la vez (sin límite de cantidad):** Productos → *Plantilla de Excel* → llenarla (columnas Nombre, Precio, Costo, Stock, Categoría) → IMPORTAR DESDE EXCEL. Se ve una vista previa; los productos con el mismo nombre se **actualizan** y se puede elegir si las cantidades **se suman** al stock o lo **reemplazan**. Hasta 20.000 filas por archivo.
 - **Cuando llega mercancía:** ➕ CARGAR en el producto.
 
 ## Instalación en el portátil (Windows)
