@@ -1,6 +1,5 @@
 # Publicación de la página de los dueños en Netlify.
-# En Netlify: "Base directory" = la carpeta donde está este archivo (caja/nube si el repositorio
-# es el actual; vacío si nube/ queda en la raíz de su propio repositorio). Sin comando de compilación.
+# En Netlify: "Base directory" = nube (la carpeta donde está este archivo). Sin comando de compilación.
 [build]
   publish = "."
 

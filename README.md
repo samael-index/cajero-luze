@@ -51,7 +51,7 @@ Ver [`INTEGRACION-STOCK.md`](INTEGRACION-STOCK.md): propuesta (aún no aplicada)
    CREATE USER caja WITH PASSWORD 'una-clave-larga';
    CREATE DATABASE caja OWNER caja;
    ```
-3. Copie esta carpeta (`caja/`) a `C:\Caja\`, abra una terminal allí y ejecute `npm install`.
+3. Descargue este repositorio (o cópielo) en `C:\Caja\`, abra una terminal allí y ejecute `npm install`.
 4. Copie `.env.example` como `.env` y escriba la `DATABASE_URL` con su usuario y clave.
 5. Doble clic en **`iniciar-caja.bat`**: arranca el servidor y abre Edge en pantalla completa. La primera vez pide crear el administrador (nombre y PIN). El segundo dueño se agrega en Ajustes → Administradores.
 6. Para que arranque con la computadora, ponga un acceso directo a `iniciar-caja.bat` en `shell:startup`.
@@ -107,7 +107,7 @@ Carpeta `nube/`: una página **solo de lectura** (un archivo HTML, sin servidor)
 
 **Publicar en Netlify (desde git):**
 1. En Netlify: *Add new site → Import an existing project* → elija el repositorio de GitHub.
-2. **Base directory:** `caja/nube` (si algún día `nube/` queda en la raíz de su propio repositorio, déjelo vacío). **Build command:** vacío. **Publish directory:** `.` (ya lo dice `nube/netlify.toml`).
+2. **Base directory:** `nube`. **Build command:** vacío. **Publish directory:** `.` (ya lo dice `nube/netlify.toml`).
 3. Cada cambio que se suba al repositorio se publica solo. Para cambiar la URL o la llave de Supabase, edite `nube/config.js` y súbalo.
 4. `nube/netlify.toml` agrega cabeceras de seguridad: la página no se puede incrustar en otros sitios, no la indexan los buscadores, y solo puede conectarse a `*.supabase.co`. La página se probó con esa misma política (`test-nube/dashboard.e2e.js`). Si usa un dominio propio en Supabase, cambie `https://*.supabase.co` en ese archivo.
 5. Después del primer despliegue, compruebe las cabeceras: `curl -I https://SU-SITIO.netlify.app` debe mostrar `content-security-policy` y `x-frame-options`. (La documentación de Netlify indica que el `netlify.toml` se lee desde el directorio base; si no aparecieran, verifique ese valor.)
