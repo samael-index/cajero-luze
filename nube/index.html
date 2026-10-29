@@ -4,17 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Caja - Panel de los dueños</title>
+<title>Velas Luze · Panel de los dueños</title>
+<meta name="theme-color" content="#3B2619">
 <style>
-:root{--bg:#f3eee4;--card:#fff;--ink:#1a1a1a;--mute:#5c5c5c;--line:#d6cfc0;--green:#1b8a3a;--green-bg:#d9f2df;--amber:#e65100;--amber-bg:#fff2d6;--red:#c62828;--red-bg:#fde3e3;--blue-bg:#e8f0fb;--bar:#1b8a3a}
-@media (prefers-color-scheme:dark){:root{--bg:#161616;--card:#222;--ink:#f1f1f1;--mute:#a8a8a8;--line:#3a3a3a;--green:#66d17f;--green-bg:#17301d;--amber:#ffab5c;--amber-bg:#3a2a12;--red:#ff7b7b;--red-bg:#3a1a1a;--blue-bg:#16263d;--bar:#66d17f}}
+:root{--bg:#FAF3E8;--card:#FFFCF7;--ink:#2B1E16;--mute:#6B5646;--line:#DCCBB0;--green:#37704A;--green-bg:#E1EEDF;--amber:#9A500E;--amber-bg:#F8E9C8;--red:#A93B2D;--red-bg:#F6DDD8;--blue-bg:#EFE4D3;--bar:#8A5A34;--moka:#5A3D2B;--moka-d:#3B2619;--serif:Georgia,"Times New Roman",serif}
+/* Identidad Velas Luze: café moka, crema y arena (aproximación de los tonos del documento de marca; cámbielos aquí) */
+@media (prefers-color-scheme:dark){:root{--bg:#1F1610;--card:#2B1F17;--ink:#F3E8D8;--mute:#BBA793;--line:#4A382B;--green:#8CC9A0;--green-bg:#1E3324;--amber:#E6A95C;--amber-bg:#3A2A12;--red:#FF9C8F;--red-bg:#3A1D18;--blue-bg:#33261C;--bar:#C98A2B}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 system-ui,"Segoe UI",Roboto,Arial,sans-serif}
 .wrap{max-width:1000px;margin:0 auto;padding:12px 16px 40px}
 header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-header h1{font-size:24px;margin:0;flex:1;min-width:180px}
+header h1{font:700 24px/1.1 var(--serif);margin:0;flex:1;min-width:180px;display:flex;align-items:center;gap:10px}
+header h1 svg{width:26px;height:34px;flex:none}
+.card h2,.login h1{font-family:var(--serif)}
 button{font:inherit;color:inherit;cursor:pointer;border:2px solid var(--line);background:var(--card);border-radius:12px;padding:8px 14px;min-height:44px;font-weight:700}
-button.pri{background:var(--green);color:#fff;border-color:var(--green)}
+button.pri{background:var(--moka);color:#fff;border-color:var(--moka-d)}
+@media (prefers-color-scheme:dark){button.pri{background:var(--bar);color:#1F1610;border-color:var(--bar)}}
 .card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .card h2{font-size:20px;margin:0 0 8px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
@@ -52,6 +57,7 @@ const fDay=d=>new Date(d+'T12:00:00-05:00').toLocaleDateString('es-CO',{weekday:
 // timestamps de la vista vienen "sin zona" y ya en hora de Bogotá (UTC-5, sin horario de verano)
 const bogota=ts=>new Date(String(ts).replace(' ','T').replace(/(\.\d{3})\d*$/,'$1')+(/[zZ]|[+-]\d\d:?\d\d$/.test(ts)?'':'-05:00'));
 const ago=d=>{const m=Math.round((Date.now()-d)/60000);return m<1?'hace un momento':m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} días`};
+const LOGO='<svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 1c3 4 5 6.5 5 9.500a5 5 0 0 1-10 0C7 7.500 9 5 12 1z" fill="#C98A2B"/><path d="M12 6c1.400 2 2.200 3.200 2.200 4.600a2.200 2.200 0 0 1-4.400 0C9.800 9.200 10.600 8 12 6z" fill="#FAF3E8"/><rect x="5" y="17" width="14" height="13" rx="2.500" fill="#8A5A34"/><rect x="11.200" y="14" width="1.600" height="4" fill="#5A3D2B"/></svg>';
 const MEDIOS={efectivo:'💵 Efectivo',tarjeta:'💳 Tarjeta',transferencia:'📲 Transferencia'};
 
 /* ---- sesión (se guarda en este navegador) ---- */
@@ -94,8 +100,8 @@ async function rest(view,query=''){
 
 /* ---- pantalla de entrada ---- */
 function renderLogin(msg=''){
-  $('#app').innerHTML=`<div class="card login"><h1 style="font-size:24px;margin:0 0 4px">Caja · Panel de los dueños</h1>
-    <p class="muted" style="margin:0 0 6px">Solo lectura. Entre con su correo.</p>
+  $('#app').innerHTML=`<div class="card login"><h1 style="font-size:24px;margin:0 0 4px;display:flex;align-items:center;gap:10px">${LOGO}Velas Luze</h1>
+    <p class="muted" style="margin:0 0 6px">Panel de los dueños · solo lectura. Entre con su correo.</p>
     <form id="f"><label for="em">Correo</label><input id="em" type="email" autocomplete="username" required>
     <label for="pw">Clave</label><input id="pw" type="password" autocomplete="current-password" required>
     <div class="err" id="err" role="alert">${esc(msg)}</div>
@@ -158,7 +164,7 @@ function render(){
   const ventas=[];const idx={};
   det.forEach(l=>{let v=idx[l.venta];if(!v){v=idx[l.venta]={id:l.venta,fecha:l.fecha,medio:l.medio_pago,estado:l.estado,total:0,items:[]};ventas.push(v)}v.total+=Number(l.total_linea);v.items.push(`${l.cantidad}× ${l.producto}${Number(l.descuento)?` (desc. −${money(l.descuento)})`:''}`)});
   $('#app').innerHTML=`
-  <header><h1>Caja · ${esc(saldo.tienda)}</h1><button data-a="refrescar">🔄 Actualizar</button><button data-a="salir">Salir</button></header>
+  <header><h1>${LOGO}${esc(saldo.tienda)} · Caja</h1><button data-a="refrescar">🔄 Actualizar</button><button data-a="salir">Salir</button></header>
   <div class="alert ${min>15?'amber':'ok'}" id="sync">${ult?(min>15?`⚠ La caja no ha enviado datos ${ago(ult)}. Puede estar sin internet o apagada: lo que ve abajo puede estar atrasado.`:`☁ Datos al día · última sincronización ${ago(ult)}`):'☁ Aún no hay sincronización'}</div>
   <div class="kpis">
     <div class="kpi g"><span>Vendido hoy</span><b>${money(hoy?hoy.total:0)}</b><small>${hoy?hoy.ventas:0} ventas${ayer?` · ayer ${money(ayer.total)}`:''}</small></div>

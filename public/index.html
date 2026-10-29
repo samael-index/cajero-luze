@@ -3,11 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Caja</title>
+<title>Velas Luze · Caja</title>
+<meta name="theme-color" content="#3B2619">
 <style>
 :root{
-  --bg:#f3eee4; --card:#fff; --ink:#1a1a1a; --mute:#5c5c5c; --line:#d6cfc0;
-  --green:#1b8a3a; --green-d:#13692b; --red:#c62828; --blue:#1558b0; --amber:#e65100;
+  /* Identidad Velas Luze: café moka, crema y arena (según el documento "Control de Stock — Velas Luze").
+     Los códigos exactos son una aproximación: cámbielos aquí y toda la caja se actualiza. */
+  --bg:#FAF3E8; --card:#FFFCF7; --ink:#2B1E16; --mute:#6B5646; --line:#DCCBB0;
+  --moka:#5A3D2B; --moka-d:#3B2619; --miel:#C98A2B;
+  --green:#37704A; --green-d:#285438; --red:#A93B2D; --blue:#5A3D2B; --amber:#9A500E;
+  --serif:Georgia,"Times New Roman",serif;
   --r:14px; --btn:clamp(44px,6.4vh,70px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -18,28 +23,31 @@ input,select{-webkit-user-select:text;user-select:text}
 button{font:inherit;color:inherit;cursor:pointer;border:0;border-radius:var(--r);touch-action:manipulation}
 button:active{transform:scale(.97);filter:brightness(.92)}
 h1,h2,h3,p{margin:0}
+h1,h2,h3{font-family:var(--serif)}
 #root{display:flex;flex-direction:column;height:100%}
 
 /* barra superior */
-.tabs{display:flex;gap:6px;padding:8px 10px;background:#222;align-items:center;flex:none}
-.tab{flex:1 1 0;min-width:0;max-width:230px;height:58px;background:#444;color:#fff;font-weight:700;font-size:clamp(17px,1.6vw,22px);position:relative;padding:0 4px;white-space:nowrap}
-.tab.on{background:var(--green);box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}
+.tabs{display:flex;gap:6px;padding:8px 10px;background:var(--moka-d);align-items:center;flex:none}
+.tab{flex:1 1 0;min-width:0;max-width:230px;height:58px;background:var(--moka);color:#fff;font-weight:700;font-size:clamp(17px,1.6vw,22px);position:relative;padding:0 4px;white-space:nowrap}
+.tab.on{background:var(--bg);color:var(--moka-d);box-shadow:inset 0 -6px 0 var(--miel)}
 .tab .badge{position:absolute;top:3px;right:5px;background:var(--amber);color:#fff;border-radius:99px;font-size:15px;padding:0 7px;line-height:22px}
-.who{background:#ffd54f;color:#222;font-weight:800;height:58px;padding:0 12px;font-size:17px;line-height:1.1;max-width:170px}
-.cloud{height:58px;padding:0 10px;font-weight:800;font-size:15px;line-height:1.1;background:#2e7d32;color:#fff;max-width:150px}
-.cloud.wait{background:#ef6c00}.cloud.off{background:#c62828}
-.clock{margin-left:auto;color:#ddd;text-align:right;font-size:16px;line-height:1.15;padding-right:6px;white-space:nowrap}
+.who{background:#E0B25A;color:var(--moka-d);font-weight:800;height:58px;padding:0 12px;font-size:17px;line-height:1.1;max-width:170px}
+.cloud{height:58px;padding:0 10px;font-weight:800;font-size:15px;line-height:1.1;background:var(--green);color:#fff;max-width:150px}
+.cloud.wait{background:var(--amber)}.cloud.off{background:var(--red)}
+.brand{display:flex;align-items:center;gap:8px;color:var(--bg);padding:0 8px 0 4px;font:700 24px/1 var(--serif);letter-spacing:.3px;white-space:nowrap}
+.brand svg{width:28px;height:36px;flex:none}
+.clock{margin-left:auto;color:#E9DCC8;text-align:right;font-size:16px;line-height:1.15;padding-right:6px;white-space:nowrap}
 .clock b{font-size:24px;color:#fff;display:block}
 #app{flex:1;min-height:0;display:flex}
 .page{flex:1;overflow:auto;padding:14px 16px 30px}
 .offline{background:var(--red);color:#fff;font-weight:800;text-align:center;padding:10px;font-size:20px;flex:none}
 
 /* botones */
-.btn{min-height:var(--btn);padding:0 22px;font-weight:700;background:#e4ddcc;border:2px solid #c9c0aa}
+.btn{min-height:var(--btn);padding:0 22px;font-weight:700;background:#EBDCC2;border:2px solid #D2BC98}
 .btn.ok{background:var(--green);color:#fff;border-color:var(--green-d)}
-.btn.bad{background:var(--red);color:#fff;border-color:#8e1b1b}
-.btn.blue{background:var(--blue);color:#fff;border-color:#0d3f82}
-.btn.alt{background:#fff}
+.btn.bad{background:var(--red);color:#fff;border-color:#7A2A20}
+.btn.blue{background:var(--blue);color:#fff;border-color:var(--moka-d)}
+.btn.alt{background:var(--card)}
 .btn.sm{min-height:50px;padding:0 16px;font-size:19px}
 .btn[disabled]{opacity:.4}
 
@@ -48,13 +56,13 @@ h1,h2,h3,p{margin:0}
 .left{display:flex;flex-direction:column;min-height:0}
 .find{width:100%;font:inherit;padding:8px 14px;border:2px solid var(--line);border-radius:12px;min-height:50px;margin-bottom:8px;flex:none}
 .cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;flex:none}
-.chip{padding:8px 16px;background:#fff;border:2px solid var(--line);font-weight:700;border-radius:99px;min-height:46px}
+.chip{padding:8px 16px;background:var(--card);border:2px solid var(--line);font-weight:700;border-radius:99px;min-height:46px}
 .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .grid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start;padding:2px 2px 20px}
-.prod{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:112px;padding:8px;border:3px solid rgba(0,0,0,.18);text-align:center}
+.prod{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:112px;padding:8px;border:3px solid rgba(90,61,43,.22);text-align:center}
 .prod .em{font-size:30px;line-height:1}
 .prod .nm{font-weight:800;font-size:19px;line-height:1.1;overflow-wrap:anywhere}
-.prod .pr{font-weight:800;font-size:22px;color:#0b4d1d}
+.prod .pr{font-weight:800;font-size:22px;color:var(--green-d)}
 .prod .st{font-size:15px;color:var(--mute)}
 .prod.low .st{color:var(--amber);font-weight:700}
 .prod.out{opacity:.45}
@@ -65,39 +73,39 @@ h1,h2,h3,p{margin:0}
 .cart,.calc{background:var(--card);border-radius:var(--r);border:2px solid var(--line);display:flex;flex-direction:column;padding:8px 10px;gap:6px;min-height:0;overflow:auto}
 .cart h3{font-size:19px;color:var(--mute);flex:none}
 .ticket{flex:1;min-height:60px;overflow:auto}
-.line{padding:6px 0;border-bottom:1px solid #eee}
+.line{padding:6px 0;border-bottom:1px solid #EFE6D8}
 .line .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .line .n{font-weight:800;font-size:19px;line-height:1.1}
 .line .s{font-weight:800;font-size:20px;white-space:nowrap}
 .line .s s{font-weight:400;color:var(--mute);font-size:16px;margin-right:4px}
 .line .tag{color:var(--amber);font-weight:800;font-size:16px}
 .line .ctl{display:flex;align-items:center;gap:6px;margin-top:4px}
-.line .ctl button{height:46px;min-width:46px;background:#e4ddcc;font-size:24px;font-weight:800;padding:0 6px}
+.line .ctl button{height:46px;min-width:46px;background:#EBDCC2;font-size:24px;font-weight:800;padding:0 6px}
 .line .ctl b{min-width:30px;text-align:center;font-size:22px}
-.line .ctl .pc{font-size:17px;padding:0 10px;background:#fff3d6;border:2px solid #e8c98a;margin-left:auto}
-.line .ctl .rm{background:#f6d4d4;font-size:20px}
+.line .ctl .pc{font-size:17px;padding:0 10px;background:#F8E9C8;border:2px solid #E3C48A;margin-left:auto}
+.line .ctl .rm{background:#EFCFC7;font-size:20px}
 .sums{flex:none;border-top:2px dashed var(--line);padding-top:4px;font-size:18px}
 .sums div{display:flex;justify-content:space-between}
 .sums .dd{color:var(--amber);font-weight:700}
 .total{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;flex:none}
 .total span{font-size:22px}.total b{font-size:38px}
 .methods{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:none}
-.methods button{min-height:48px;font-weight:800;font-size:17px;background:#eee;border:2px solid #d0d0d0;padding:0 2px}
-.methods button.on{background:var(--blue);color:#fff;border-color:#0d3f82}
+.methods button{min-height:48px;font-weight:800;font-size:17px;background:#EFE6D8;border:2px solid #D9C9B1;padding:0 2px}
+.methods button.on{background:var(--blue);color:#fff;border-color:var(--moka-d)}
 .pay{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none}
 .pay span{font-weight:800;font-size:20px}
-.disp{flex:1;text-align:right;background:#f6f3ea;border:2px solid var(--line);border-radius:10px;padding:0 12px;font-weight:800;font-size:30px;min-height:48px;line-height:44px;overflow:hidden}
-.change{display:flex;justify-content:space-between;align-items:center;border-radius:12px;padding:4px 14px;font-weight:800;background:#eee;min-height:58px;flex:none}
+.disp{flex:1;text-align:right;background:#F5EBDA;border:2px solid var(--line);border-radius:10px;padding:0 12px;font-weight:800;font-size:30px;min-height:48px;line-height:44px;overflow:hidden}
+.change{display:flex;justify-content:space-between;align-items:center;border-radius:12px;padding:4px 14px;font-weight:800;background:#EFE6D8;min-height:58px;flex:none}
 .change span{font-size:22px}.change b{font-size:36px}
-.change.good{background:#d9f2df;color:#0b4d1d}
-.change.miss{background:#fde3e3;color:#8e1b1b}
-.noncash{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:22px;font-weight:700;background:#e8f0fb;border-radius:12px;padding:14px;color:#0d3f82}
+.change.good{background:#E1EEDF;color:var(--green-d)}
+.change.miss{background:#F6DDD8;color:#7A2A20}
+.noncash{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:22px;font-weight:700;background:#EFE4D3;border-radius:12px;padding:14px;color:var(--moka-d)}
 .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:none}
 .quick .btn{min-height:46px;font-size:17px;padding:0 2px}
 .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:none}
-.pad button{height:var(--btn);font-size:26px;font-weight:800;background:#ece6d6;border:2px solid #d3caae;padding:0}
+.pad button{height:var(--btn);font-size:26px;font-weight:800;background:#EFE2CB;border:2px solid #D9C6A3;padding:0}
 .pad .w3{grid-column:span 3}
-.pad .red{background:#f6d4d4;border-color:#e0a8a8}
+.pad .red{background:#EFCFC7;border-color:#D9A79D}
 .actions{display:grid;grid-template-columns:1fr 2fr;gap:8px;flex:none}
 .actions .btn{min-height:calc(var(--btn) + 4px);font-size:24px}
 
@@ -106,7 +114,7 @@ h1,h2,h3,p{margin:0}
 .head h2{font-size:30px;flex:1;min-width:200px}
 .card{background:var(--card);border:2px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
 .card h3{font-size:23px;margin-bottom:8px}
-.prow{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:var(--r);padding:8px 14px;margin-bottom:8px}
+.prow{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;background:var(--card);border:2px solid var(--line);border-radius:var(--r);padding:8px 14px;margin-bottom:8px}
 .prow .t{font-size:22px;font-weight:800}
 .prow .t small{display:block;font-weight:400;font-size:17px;color:var(--mute)}
 .prow .acts{display:flex;gap:8px;align-items:center}
@@ -116,22 +124,22 @@ h1,h2,h3,p{margin:0}
 .search{width:100%;max-width:320px;font:inherit;padding:10px 14px;border:2px solid var(--line);border-radius:12px;min-height:52px}
 .big{font-size:52px;font-weight:900;line-height:1.05}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:12px}
-.kpi{background:#fff;border:2px solid var(--line);border-radius:var(--r);padding:10px 14px}
+.kpi{background:var(--card);border:2px solid var(--line);border-radius:var(--r);padding:10px 14px}
 .kpi span{display:block;color:var(--mute);font-size:18px}
 .kpi b{font-size:32px;display:block}
 .kpi small{color:var(--mute);font-size:16px}
-.kpi.g{background:#d9f2df;border-color:#9bd3a8}
-.kpi.a{background:#fff2d6;border-color:#e8c98a}
-.kpi.b{background:#e8f0fb;border-color:#b3c9ea}
+.kpi.g{background:#E1EEDF;border-color:#B7D4B8}
+.kpi.a{background:#F8E9C8;border-color:#E3C48A}
+.kpi.b{background:#EFE4D3;border-color:#D8C3A0}
 table{width:100%;border-collapse:collapse;font-size:19px}
-th,td{padding:8px 8px;border-bottom:1px solid #e8e2d2;text-align:left;vertical-align:top}
+th,td{padding:8px 8px;border-bottom:1px solid #E8DAC2;text-align:left;vertical-align:top}
 th{font-size:16px;color:var(--mute);font-weight:700}
 td.r,th.r{text-align:right}
-tr.void td{text-decoration:line-through;color:#999}
+tr.void td{text-decoration:line-through;color:#8C7B6A}
 tr.tot td{font-weight:900;border-top:3px solid var(--ink);font-size:21px}
 tr.info td{color:var(--mute);font-size:17px}
-.alert{background:#fff2d6;border:2px solid #e8c98a;border-radius:var(--r);padding:12px 16px;margin-bottom:12px;font-size:21px;font-weight:700}
-.alert.red{background:#fde3e3;border-color:#e0a8a8}
+.alert{background:#F8E9C8;border:2px solid #E3C48A;border-radius:var(--r);padding:12px 16px;margin-bottom:12px;font-size:21px;font-weight:700}
+.alert.red{background:#F6DDD8;border-color:#D9A79D}
 .muted{color:var(--mute)}
 .set{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
 label{display:block;font-weight:700;font-size:18px}
@@ -140,8 +148,8 @@ label input{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400
 .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
 /* ===== ventanas ===== */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:10px;z-index:50}
-.box{background:#fff;border-radius:18px;padding:16px 18px;width:min(520px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.modal{position:fixed;inset:0;background:rgba(43,30,22,.6);display:flex;align-items:center;justify-content:center;padding:10px;z-index:50}
+.box{background:var(--card);border-radius:18px;padding:16px 18px;width:min(520px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:8px}
 .box.wide{width:min(760px,100%)}
 .box h2{font-size:26px}
 .box .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -149,20 +157,21 @@ label input{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400
 .box .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .box .pad button{height:clamp(44px,6.8vh,64px)}
 .sw{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.sw button{min-height:48px;font-weight:800;background:#eee;border:2px solid #d0d0d0}
+.sw button{min-height:48px;font-weight:800;background:#EFE6D8;border:2px solid #D9C9B1}
 .sw button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.res{background:#f6f3ea;border-radius:12px;padding:8px 12px;font-size:20px}
+.res{background:#F5EBDA;border-radius:12px;padding:8px 12px;font-size:20px}
 .res b{font-size:24px}.res .neg{color:var(--red)}
 .dots{display:flex;gap:12px;justify-content:center;min-height:44px;align-items:center}
-.dots i{width:22px;height:22px;border-radius:50%;background:#ccc}.dots i.f{background:var(--ink)}
+.dots i{width:22px;height:22px;border-radius:50%;background:#CDBBA0}.dots i.f{background:var(--ink)}
 .done{text-align:center}
-.done .big{font-size:80px;color:#0b4d1d}
+.done .big{font-size:80px;color:var(--green-d)}
 .done h2{font-size:32px}
 .err{color:var(--red);font-weight:700;min-height:1.3em;text-align:center}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:14px 24px;border-radius:14px;font-size:21px;font-weight:700;z-index:99;max-width:90vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--moka-d);color:#fff;padding:14px 24px;border-radius:14px;font-size:21px;font-weight:700;z-index:99;max-width:90vw;text-align:center}
 .full{position:fixed;inset:0;background:var(--bg);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center}
 
 /* pantalla vertical (el Yoga girado o en modo tableta) */
+@media (max-width:1250px){ .brand span{display:none} }
 @media (max-width:1000px){
   .sell{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,38%) minmax(0,1fr)}
   .left{grid-column:1/-1}
@@ -171,9 +180,9 @@ label input{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400
 @media (max-width:860px){ .cloud{max-width:78px;font-size:13px;padding:0 4px} .tab .ico{display:none} .tab{font-size:15px;padding:0 2px} .who{max-width:96px;font-size:14px;padding:0 8px} .tabs{gap:4px;padding:8px 6px} }
 @media print{
   .tabs,.noprint,.modal,.toast,button{display:none!important}
-  body{background:#fff;overflow:visible;font-size:14px}
+  body{background:var(--card);overflow:visible;font-size:14px}
   #root,#app,.page{display:block;height:auto;overflow:visible;padding:0}
-  .card,.kpi{break-inside:avoid;border-color:#999}
+  .card,.kpi{break-inside:avoid;border-color:#8C7B6A}
 }
 </style>
 </head>
@@ -197,6 +206,8 @@ const fDate=ts=>new Date(ts).toLocaleDateString('es-CO',{weekday:'short',day:'nu
 const fTime=ts=>new Date(ts).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',timeZone:TZ});
 const fDay=d=>new Date(d+'T12:00:00-05:00').toLocaleDateString('es-CO',{weekday:'short',day:'numeric',month:'short',timeZone:TZ});
 const hue=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))%360;return h};
+const TILE=['#F3E5D0','#EFD9CF','#E4E8D6','#F2E2B8','#E6DDEB','#D9E6E3']; // arena, rosa polvo, salvia, miel, lavanda, agua
+const LOGO='<svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 1c3 4 5 6.5 5 9.500a5 5 0 0 1-10 0C7 7.500 9 5 12 1z" fill="#E0B25A"/><path d="M12 6c1.400 2 2.200 3.200 2.200 4.600a2.200 2.200 0 0 1-4.400 0C9.800 9.200 10.600 8 12 6z" fill="#FAF3E8"/><rect x="5" y="17" width="14" height="13" rx="2.500" fill="#EBDCC2"/><rect x="11.200" y="14" width="1.600" height="4" fill="#FAF3E8"/></svg>';
 const METODOS={efectivo:'💵 Efectivo',tarjeta:'💳 Tarjeta',transferencia:'📲 Transferencia'};
 
 function toast(msg){
@@ -366,7 +377,7 @@ async function pinLogin(){
   }
 }
 async function setupAdmin(){
-  const name=await promptText({title:'Bienvenido. Cree el administrador',sub:'Escriba su nombre (el PIN protege los reportes y el dinero)',okLabel:'SIGUIENTE'});
+  const name=await promptText({title:'Bienvenido a '+(S.settings.negocio||'Velas Luze')+'. Cree el administrador',sub:'Escriba su nombre (el PIN protege los reportes y el dinero)',okLabel:'SIGUIENTE'});
   if(!name)return false;
   for(;;){
     const a=await pinPad({title:'Cree su PIN',sub:'De 4 a 8 números. No lo olvide.'});if(!a)return false;
@@ -389,7 +400,7 @@ async function adm(fn){
 function renderTabs(){
   const n=alertCount();
   const t=[['vender','🛒','VENDER'],['productos','📦','PRODUCTOS'],['ventas','📊','VENTAS'+(admin?'':' 🔒')],['caja','💵','CAJA'],['ajustes','⚙️','AJUSTES'+(admin?'':' 🔒')]];
-  $('#tabs').innerHTML=t.map(([k,i,l])=>`<button class="tab ${ui.tab===k?'on':''}" data-act="tab" data-v="${k}"><span class="ico">${i} </span>${l}${k==='productos'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('')+
+  $('#tabs').innerHTML=`<div class="brand">${LOGO}<span>${esc(S.settings.negocio||'Velas Luze')}</span></div>`+t.map(([k,i,l])=>`<button class="tab ${ui.tab===k?'on':''}" data-act="tab" data-v="${k}"><span class="ico">${i} </span>${l}${k==='productos'&&n?`<span class="badge">${n}</span>`:''}</button>`).join('')+
     cloudChip()+
     (admin?`<button class="who" data-act="salir">🔓 ${esc(admin.name)}<br>Cerrar</button>`:'')+
     `<div class="clock"><b id="clk"></b><span id="clkd"></span></div>`;
@@ -436,7 +447,7 @@ function vVender(){
   const grid=list.length?list.map(p=>{
     const left=p.stock-cartQty(p.id);
     const cls=p.stock<=0?'out':isLow(p)?'low':'';
-    return `<button class="prod ${cls}" style="background:hsl(${hue(p.name)} 70% 92%)" data-act="add" data-id="${p.id}">
+    return `<button class="prod ${cls}" style="background:${TILE[hue(p.name)%TILE.length]}" data-act="add" data-id="${p.id}">
       ${p.emoji?`<span class="em">${esc(p.emoji)}</span>`:''}<span class="nm">${esc(p.name)}</span><span class="pr">${money(p.price)}</span>
       <span class="st">${p.stock<=0?'AGOTADO':'Quedan '+left}</span></button>`}).join('')+(all.length>LIM?`<div class="more">Hay ${all.length} productos. Escriba en el buscador para encontrar otros.</div>`:'')
     :`<div class="empty" style="grid-column:1/-1">${S.products.length?'No se encontró ningún producto.':'Todavía no hay productos.<br><br><button class="btn ok" data-act="tab" data-v="productos">📦 Ir a PRODUCTOS para agregarlos</button>'}</div>`;
@@ -532,7 +543,7 @@ function vVentas(){
     :'<div class="empty">No hay ventas en este período.</div>'}
     ${r.ventas.length?`<div class="card"><h3>Cada venta</h3><table><tr><th>N°</th><th>Cuándo</th><th>Detalle</th><th>Pago</th><th class="r">Total</th><th class="noprint"></th></tr>
       ${r.ventas.map(v=>`<tr class="${v.status==='anulada'?'void':''}"><td>${v.id}</td><td>${fDate(v.created_at)} ${fTime(v.created_at)}</td>
-        <td>${v.items.map(i=>i.qty+'× '+esc(i.name)+(i.discount?` (desc. −${money(i.discount)})`:'')).join(', ')}${v.status==='anulada'?` <b style="text-decoration:none;color:#c62828">(ANULADA por ${esc(v.voided_by||'')}${v.void_reason?': '+esc(v.void_reason):''})</b>`:''}</td>
+        <td>${v.items.map(i=>i.qty+'× '+esc(i.name)+(i.discount?` (desc. −${money(i.discount)})`:'')).join(', ')}${v.status==='anulada'?` <b style="text-decoration:none;color:var(--red)">(ANULADA por ${esc(v.voided_by||'')}${v.void_reason?': '+esc(v.void_reason):''})</b>`:''}</td>
         <td>${METODOS[v.method]}</td><td class="r"><b>${money(v.total)}</b></td>
         <td class="noprint">${v.status==='ok'?`<button class="btn sm" data-act="anular" data-id="${v.id}">Anular</button>`:''}</td></tr>`).join('')}</table>
       ${r.ventas.length>=300?'<p class="muted">Se muestran las 300 más recientes del período.</p>':''}</div>`:''}</div>`;
@@ -562,9 +573,9 @@ function vCaja(){
       <tr class="info"><td>Aparte (no está en la caja): tarjeta + transferencia</td>${d.map(x=>`<td class="r">${money(x.tarjeta+x.transferencia)}</td>`).join('')}</tr></table>
       <p class="muted" style="margin-top:8px">El saldo con que empieza cada día es el que quedó al cerrar el día anterior.</p></div>
     <div class="card"><h3>Movimientos de dinero</h3>${ui.moves.length?`<table><tr><th>Cuándo</th><th>Qué pasó</th><th>Quién</th><th class="r">Monto</th><th class="r">Quedó en caja</th></tr>
-      ${ui.moves.map(m=>m.type==='conteo'?`<tr class="info"><td>${fDate(m.created_at)} ${fTime(m.created_at)}</td><td colspan="2">🧮 Conteo: se contó ${money(m.amount)}, debía haber ${money(m.left_in_cash)}</td><td class="r" colspan="2"><b style="color:${m.diff?'#c62828':'#1b8a3a'}">${m.diff===0?'Exacto':(m.diff>0?'Sobra ':'Falta ')+money(Math.abs(m.diff))}</b></td></tr>`
+      ${ui.moves.map(m=>m.type==='conteo'?`<tr class="info"><td>${fDate(m.created_at)} ${fTime(m.created_at)}</td><td colspan="2">🧮 Conteo: se contó ${money(m.amount)}, debía haber ${money(m.left_in_cash)}</td><td class="r" colspan="2"><b style="color:${m.diff?'var(--red)':'var(--green)'}">${m.diff===0?'Exacto':(m.diff>0?'Sobra ':'Falta ')+money(Math.abs(m.diff))}</b></td></tr>`
         :`<tr><td>${fDate(m.created_at)} ${fTime(m.created_at)}</td><td>${m.type==='retiro'?'⬆ Retiro':'⬇ Se agregó'} · ${esc(m.reason)}</td><td>${esc(m.admin_name)}</td>
-        <td class="r"><b style="color:${m.type==='retiro'?'#c62828':'#1b8a3a'}">${m.type==='retiro'?'−':'+'}${money(m.amount)}</b></td><td class="r">${money(m.left_in_cash)}</td></tr>`).join('')}</table>`
+        <td class="r"><b style="color:${m.type==='retiro'?'var(--red)':'var(--green)'}">${m.type==='retiro'?'−':'+'}${money(m.amount)}</b></td><td class="r">${money(m.left_in_cash)}</td></tr>`).join('')}</table>`
       :'<p class="muted">Aún no hay movimientos.</p>'}</div></div>`;
 }
 
@@ -588,7 +599,7 @@ function vAjustes(){
         ${a.id===admin?.id?'<button class="btn sm" data-act="cambiarpin">Cambiar mi PIN</button>':`<button class="btn bad sm" data-act="deladmin" data-id="${a.id}">Quitar</button>`}</div></div>`).join('')}
       <button class="btn blue sm" data-act="addadmin">➕ Agregar administrador</button></div>
     ${S.sync.enabled?`<div class="card"><h3>☁ Copia en la nube</h3>
-      <p>${S.sync.last_error?`<b style="color:#c62828">Sin conexión con la nube.</b> La caja sigue funcionando normal; ${S.sync.pending} cambios esperan para subirse cuando vuelva el internet.`:S.sync.pending>0?`Subiendo ${S.sync.pending} cambios…`:'<b style="color:#1b8a3a">Todo está al día en la nube.</b>'}</p>
+      <p>${S.sync.last_error?`<b style="color:var(--red)">Sin conexión con la nube.</b> La caja sigue funcionando normal; ${S.sync.pending} cambios esperan para subirse cuando vuelva el internet.`:S.sync.pending>0?`Subiendo ${S.sync.pending} cambios…`:'<b style="color:var(--green)">Todo está al día en la nube.</b>'}</p>
       <p class="muted" style="margin:6px 0 10px">Última subida correcta: ${ago(S.sync.last_ok)}. Se intenta cada 30 segundos. Desde la nube se ve el stock, las ventas y el dinero de la caja.</p>
       <button class="btn blue sm" data-act="syncnow">🔄 Sincronizar ahora</button></div>`:`<div class="card"><h3>☁ Copia en la nube</h3><p class="muted">No está activada. Para ver el stock y las ventas desde otro lugar, configure CLOUD_DATABASE_URL (ver README).</p></div>`}
     <div class="card"><h3>Copia de seguridad</h3>
@@ -702,7 +713,7 @@ async function importExcel(file){
   const rows=pv.rows,good=rows.filter(r=>r.estado!=='error');
   const nuevos=rows.filter(r=>r.estado==='nuevo').length,act=rows.filter(r=>r.estado==='actualiza').length,errs=rows.filter(r=>r.estado==='error');
   const m=modal(`<h2>Revise antes de importar</h2>
-    <div class="res"><b>${nuevos}</b> producto${nuevos==1?'':'s'} nuevo${nuevos==1?'':'s'} · <b>${act}</b> ya existe${act==1?'':'n'} (se actualizan)${errs.length?` · <b class="neg" style="color:#c62828">${errs.length}</b> con error (no se importan)`:''}</div>
+    <div class="res"><b>${nuevos}</b> producto${nuevos==1?'':'s'} nuevo${nuevos==1?'':'s'} · <b>${act}</b> ya existe${act==1?'':'n'} (se actualizan)${errs.length?` · <b class="neg" style="color:var(--red)">${errs.length}</b> con error (no se importan)`:''}</div>
     <table><tr><th>Producto</th><th class="r">Precio</th><th class="r">Stock</th><th></th></tr>
       ${rows.slice(0,6).map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${money(r.price)}</td><td class="r">${r.stock}</td><td>${r.estado==='nuevo'?'🆕':r.estado==='actualiza'?'🔄':'❌'}</td></tr>`).join('')}</table>
     ${rows.length>6?`<p class="muted">… y ${rows.length-6} más</p>`:''}
@@ -749,7 +760,7 @@ function cashModal(kind,bal){
       const r=m.querySelector('#res');
       if(retiro){
         const amount=mode==='queda'?bal-num():num(),left=bal-amount;
-        r.innerHTML=amount<=0||amount>bal?`<span class="neg" style="color:#c62828">${v===''?'Escriba un valor':amount>bal?'No hay tanto dinero en la caja':'No hay dinero para retirar con ese valor'}</span>`
+        r.innerHTML=amount<=0||amount>bal?`<span class="neg" style="color:var(--red)">${v===''?'Escriba un valor':amount>bal?'No hay tanto dinero en la caja':'No hay dinero para retirar con ese valor'}</span>`
           :`Se retira: <b>${money(amount)}</b><br>Queda en la caja: <b>${money(left)}</b>`;
       }else r.innerHTML=num()>0?`Quedarán en la caja: <b>${money(bal+num())}</b>`:'Escriba un valor';
       m.querySelector('#motivos').innerHTML=motivos.map(x=>`<button class="chip ${!otro&&motivo===x?'on':''}" data-mo="${esc(x)}">${esc(x)}</button>`).join('')+`<button class="chip ${otro?'on':''}" data-mo="__otro">Otro…</button>`;
@@ -881,7 +892,7 @@ const act={
     await loadCash();render();
     infoBox(`<div class="done"><h2>${c.diff===0?'✅ La caja está exacta':c.diff>0?'Sobra dinero':'Falta dinero'}</h2>
       <p style="margin:10px 0">Debería haber <b>${money(c.expected)}</b><br>Usted contó <b>${money(c.counted)}</b></p>
-      ${c.diff?`<div class="big" style="color:${c.diff>0?'#1b8a3a':'#c62828'}">${c.diff>0?'+':'−'}${money(Math.abs(c.diff))}</div>`:''}</div>`);
+      ${c.diff?`<div class="big" style="color:${c.diff>0?'var(--green)':'var(--red)'}">${c.diff>0?'+':'−'}${money(Math.abs(c.diff))}</div>`:''}</div>`);
   },
   /* ajustes */
   async addcambio(){const v=await ask({title:'¿Cuánto dinero se deja de cambio?',okLabel:'AGREGAR'});if(v===null||!Number(v))return;await saveSetting({cambio_opciones:[...S.settings.cambio_opciones,Number(v)]})},
@@ -910,7 +921,7 @@ const act={
   syncinfo(){
     const c=S.sync;
     infoBox(`<h2>☁ Copia en la nube</h2>
-      <p style="font-size:22px">${c.last_error?'<b style="color:#c62828">Sin conexión con la nube.</b><br>Puede seguir vendiendo con normalidad: todo se guarda en esta computadora y se sube solo cuando vuelva el internet.':c.pending>0?'<b style="color:#ef6c00">Subiendo cambios…</b>':'<b style="color:#1b8a3a">Todo está al día.</b>'}</p>
+      <p style="font-size:22px">${c.last_error?'<b style="color:var(--red)">Sin conexión con la nube.</b><br>Puede seguir vendiendo con normalidad: todo se guarda en esta computadora y se sube solo cuando vuelva el internet.':c.pending>0?'<b style="color:var(--amber)">Subiendo cambios…</b>':'<b style="color:var(--green)">Todo está al día.</b>'}</p>
       <p class="muted">Cambios por subir: <b>${c.pending}</b><br>Última subida correcta: <b>${ago(c.last_ok)}</b></p>`);
   },
   async syncnow(){

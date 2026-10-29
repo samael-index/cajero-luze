@@ -131,7 +131,7 @@ test('importar muchos productos sube todo, por páginas', async () => {
 
 test('cada tienda queda separada y se ve cuándo fue la última sincronización', async () => {
   const s = await one(cloud, `SELECT name, last_sync FROM caja.stores WHERE store_id=$1`, [storeId]);
-  assert.equal(s.name, 'Mi tienda'); assert.ok(s.last_sync);
+  assert.equal(s.name, 'Velas Luze'); assert.ok(s.last_sync);
   const { status, data } = await api('GET', '/api/sync/status', undefined, null);
   assert.equal(status, 200); assert.equal(data.enabled, true); assert.equal(data.pending, 0);
   assert.equal((await api('POST', '/api/sync/run', {}, null)).status, 401);

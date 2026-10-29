@@ -181,9 +181,15 @@ test('reportes: por medio de pago, descuentos, ganancia, por producto', async ()
 test('Excel: plantilla → vista previa → importar sumando o reemplazando stock', async () => {
   const tpl = await api('GET', '/api/products/template.xlsx', undefined, { tok: null });
   assert.equal(tpl.status, 200);
+  const tw = new ExcelJS.Workbook();
+  await tw.xlsx.load(tpl.data);
+  assert.equal(tw.worksheets[0].getRow(1).getCell(1).value, 'Nombre');
+  assert.equal(tw.worksheets[0].getRow(2).getCell(1).value, 'Cúpula Margarita');
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(tpl.data);
-  const ws = wb.worksheets[0];
+  const ws = wb.addWorksheet('Productos');
+  ws.addRow(['Nombre', 'Precio', 'Costo', 'Stock', 'Categoría', 'Emoji']);
+  ws.addRow(['Pan francés', 1500, 900, 40, 'Panadería', '🍞']);
+  ws.addRow(['Leche entera 1L', 4200, 3500, 24, 'Lácteos', '🥛']);
   ws.addRow(['Pan francés', '$ 1.600', 950, 20, 'Panadería', '🍞']); // existente, precio en texto colombiano
   ws.addRow(['', '', '', '', '', '']);
   ws.addRow(['Sin precio negativo', -5, 0, 1, '', '']);

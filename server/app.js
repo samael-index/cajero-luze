@@ -15,7 +15,7 @@ if (!/^[A-Za-z_]+(\/[A-Za-z_+-]+){0,2}$/.test(TZ)) throw new Error('TZ_NEGOCIO n
 const SESSION_MINUTES = 10; // el modo administrador se cierra tras 10 min sin usarse
 const METHODS = ['efectivo', 'tarjeta', 'transferencia'];
 const DEFAULT_SETTINGS = {
-  negocio: 'Mi tienda',
+  negocio: 'Velas Luze',
   cambio_opciones: [100000, 80000],
   dias_retiro: 15,
   stock_bajo: 5,
@@ -319,8 +319,10 @@ function createApp({ pool, publicDir, sync }) {
     res.send(Buffer.from(buf));
   }
   app.get('/api/products/template.xlsx', wrap((req, res) => sendXlsx(res, 'plantilla-productos.xlsx', [
-    { name: 'Pan francés', price: 1500, cost: 900, stock: 40, category: 'Panadería', emoji: '🍞' },
-    { name: 'Leche entera 1L', price: 4200, cost: 3500, stock: 24, category: 'Lácteos', emoji: '🥛' }
+    { name: 'Cúpula Margarita', price: 6000, cost: 0, stock: 12, category: 'Cúpulas', emoji: '🕯️' },
+    { name: 'Sagrada Familia', price: 16000, cost: 0, stock: 8, category: 'Cúpulas', emoji: '🕯️' },
+    { name: 'Kit deseos blancos', price: 25000, cost: 0, stock: 6, category: 'Kits', emoji: '🎁' },
+    { name: 'Ramo 3x2 Virgen', price: 27000, cost: 0, stock: 5, category: 'Ramos', emoji: '💐' }
   ])));
   app.get('/api/products/export.xlsx', requireAdmin, wrap(async (req, res) => {
     const { rows } = await pool.query('SELECT name, price, cost, stock, category, emoji FROM products WHERE active ORDER BY name');
