@@ -1,0 +1,20 @@
+{
+  "name": "caja",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Punto de venta táctil con PostgreSQL",
+  "type": "commonjs",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "test": "node --test server/test/api.test.js"
+  },
+  "engines": {
+    "node": ">=22.9"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "express": "^4.22.3",
+    "pg": "^8.23.1"
+  }
+}

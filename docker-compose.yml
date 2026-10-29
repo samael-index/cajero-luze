@@ -1,0 +1,12 @@
+# Base de datos PostgreSQL para desarrollo/pruebas:  docker compose up -d
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: caja
+      POSTGRES_PASSWORD: caja_dev
+      POSTGRES_DB: caja
+    ports: ["5432:5432"]
+    volumes: ["caja_pg:/var/lib/postgresql/data"]
+volumes:
+  caja_pg:
