@@ -1,0 +1,22 @@
+# Publicación de la página de los dueños en Netlify.
+# En Netlify: "Base directory" = la carpeta donde está este archivo (caja/nube si el repositorio
+# es el actual; vacío si nube/ queda en la raíz de su propio repositorio). Sin comando de compilación.
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Robots-Tag = "noindex, nofollow"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # La página solo puede hablar con su proyecto de Supabase. Si usa un dominio propio en Supabase,
+    # cambie https://*.supabase.co por ese dominio.
+    Content-Security-Policy = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src https://*.supabase.co; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-cache"

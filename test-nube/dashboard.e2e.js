@@ -1,6 +1,7 @@
 'use strict';
 // Prueba de la página de los dueños con navegador real + simulador de Supabase + PostgreSQL con RLS.
-// Uso: NODE_PATH=$(npm root -g):<caja>/node_modules node nube/test/dashboard.e2e.js
+// Uso: NODE_PATH=$(npm root -g):<caja>/node_modules node test-nube/dashboard.e2e.js
+// Además comprueba que la página funciona con las MISMAS cabeceras de seguridad (CSP) de nube/netlify.toml.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -11,8 +12,11 @@ const { start } = require('./mock-supabase');
 const DB = process.env.RLS_URL_TEST || 'postgres://caja:caja_dev@localhost:5432/caja_rls_test';
 const KEY = 'sb_publishable_TEST';
 const OUT = process.env.SHOTS || '/tmp';
-const root = path.join(__dirname, '..');
-const server = path.join(root, '..', 'server');
+const root = path.join(__dirname, '..', 'nube');
+const server = path.join(__dirname, '..', 'server');
+// La política de seguridad real de Netlify, con el simulador local en lugar de supabase.co
+const CSP = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8').match(/Content-Security-Policy = "([^"]+)"/)[1]
+  .replace('https://*.supabase.co', 'http://127.0.0.1:3200');
 const STORE = '22222222-2222-2222-2222-222222222222';
 let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL', m); } else console.log('ok  ', m); };
@@ -50,14 +54,15 @@ async function seed(pool) {
   const mock = await start({ port: 3200, dbUrl: DB, key: KEY });
   const web = http.createServer((req, res) => {   // sirve nube/ y entrega un config.js que apunta al simulador
     const f = req.url === '/config.js' ? null : path.join(root, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
-    if (!f) { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(`window.CAJA_NUBE={url:'http://127.0.0.1:3200',key:'${KEY}',schema:'caja'}`); }
-    fs.readFile(f, (e, d) => { if (e) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : 'text/html' }); res.end(d); });
+    if (!f) { res.writeHead(200, { 'content-type': 'text/javascript', 'content-security-policy': CSP }); return res.end(`window.CAJA_NUBE={url:'http://127.0.0.1:3200',key:'${KEY}',schema:'caja'}`); }
+    fs.readFile(f, (e, d) => { if (e) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : 'text/html', 'content-security-policy': CSP, 'x-frame-options': 'DENY', 'x-content-type-options': 'nosniff' }); res.end(d); });
   }).listen(3300);
 
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1100, height: 900 } });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
+  p.on('console', m => m.type() === 'error' && /Content Security Policy|Refused to/i.test(m.text()) && errs.push(m.text()));
   await p.goto('http://127.0.0.1:3300/');
   const login = async (em, pw) => { await p.fill('#em', em); await p.fill('#pw', pw); await p.click('button[type=submit]'); };
 

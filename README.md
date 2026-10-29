@@ -84,7 +84,7 @@ En `.env`: `CLOUD_DATABASE_URL=` con la cadena de conexión del proyecto. Neon u
 ### Página para los dueños (ver desde fuera, con login)
 Carpeta `nube/`: una página **solo de lectura** (un archivo HTML, sin servidor) que muestra lo vendido hoy por medio de pago, descuentos, dinero en la caja, ventas de los últimos días, stock con alertas (agotados / por agotarse), retiros con motivo y quién, y las últimas ventas. Avisa en naranja si la caja lleva más de 15 minutos sin enviar datos (sin internet o apagada). Funciona en el celular y en modo oscuro.
 
-**Seguridad (probada en `server/test/rls.test.js` y `nube/test/dashboard.e2e.js`):** entra con correo y clave de Supabase Auth; solo los correos de la tabla `caja.owners` ven filas (cualquier otra persona con sesión ve **cero**); quien no inició sesión no tiene ningún acceso; nadie puede escribir ni borrar por la API; la página solo lleva la llave **publicable**, nunca la secreta.
+**Seguridad (probada en `server/test/rls.test.js` y `test-nube/dashboard.e2e.js`):** entra con correo y clave de Supabase Auth; solo los correos de la tabla `caja.owners` ven filas (cualquier otra persona con sesión ve **cero**); quien no inició sesión no tiene ningún acceso; nadie puede escribir ni borrar por la API; la página solo lleva la llave **publicable**, nunca la secreta.
 
 **Pasos en Supabase (una sola vez):**
 1. Con la caja ya sincronizada al menos una vez (existe el esquema `caja`), abra el *SQL Editor* y ejecute `server/cloud-dashboard.sql`.
@@ -93,7 +93,16 @@ Carpeta `nube/`: una página **solo de lectura** (un archivo HTML, sin servidor)
 3. *Authentication → Users*: cree a cada dueño con su correo y una clave larga, y **desactive los registros nuevos** (*Sign In / Providers → Allow new users to sign up*), para que nadie más pueda crearse una cuenta.
 4. *Project Settings → API → Exposed schemas*: agregue `caja`.
 5. Copie en `nube/config.js` la URL del proyecto y la llave **publicable** (nunca la `service_role` / secreta).
-6. Publique la carpeta `nube/` en cualquier alojamiento de archivos estáticos (Cloudflare Pages, Netlify, GitHub Pages…) o ábrala desde su computador. Entre con su correo y clave.
+6. Publíquela en **Netlify** (ver abajo) y entre con su correo y clave.
+
+**Publicar en Netlify (desde git):**
+1. En Netlify: *Add new site → Import an existing project* → elija el repositorio de GitHub.
+2. **Base directory:** `caja/nube` (si algún día `nube/` queda en la raíz de su propio repositorio, déjelo vacío). **Build command:** vacío. **Publish directory:** `.` (ya lo dice `nube/netlify.toml`).
+3. Cada cambio que se suba al repositorio se publica solo. Para cambiar la URL o la llave de Supabase, edite `nube/config.js` y súbalo.
+4. `nube/netlify.toml` agrega cabeceras de seguridad: la página no se puede incrustar en otros sitios, no la indexan los buscadores, y solo puede conectarse a `*.supabase.co`. La página se probó con esa misma política (`test-nube/dashboard.e2e.js`). Si usa un dominio propio en Supabase, cambie `https://*.supabase.co` en ese archivo.
+5. Después del primer despliegue, compruebe las cabeceras: `curl -I https://SU-SITIO.netlify.app` debe mostrar `content-security-policy` y `x-frame-options`. (La documentación de Netlify indica que el `netlify.toml` se lee desde el directorio base; si no aparecieran, verifique ese valor.)
+
+**Sobre el plan gratis de Netlify y el uso comercial:** las respuestas del personal de Netlify en su foro dicen que el plan gratis se puede usar en proyectos comerciales, pero el contrato ([Self-Serve Subscription Agreement](https://www.netlify.com/legal/self-serve-subscription-agreement/)) habla de uso "para los propósitos internos del negocio" y dice que el plan gratis se ofrece a discreción de Netlify y puede cambiar. Esta página la usan solo los dueños del negocio (uso interno), pero conviene leer los términos vigentes o pedir confirmación escrita al soporte antes de depender de ella.
 
 > Nota: esta página se probó contra un simulador de Supabase que ejecuta las consultas en PostgreSQL con los permisos reales (rol `authenticated` y claims del token), no contra un proyecto de Supabase de verdad. Al conectarla por primera vez, revise los pasos 1 a 5.
 
