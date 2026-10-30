@@ -2,7 +2,7 @@
 // La "key" es la llave PUBLICABLE (sb_publishable_... o anon): está hecha para ir en el navegador.
 // NUNCA ponga aquí la llave secreta (service_role / sb_secret_...).
 window.CAJA_NUBE = {
-  url: 'https://SU-PROYECTO.supabase.co',
-  key: 'SU_LLAVE_PUBLICABLE',
+  url: 'https://ctppfogxcpqcwmdfhokv.supabase.co',
+  key: 'sb_publishable_dKNnv1RGEbEAz50zacu7bQ_F3q7b3d_',
   schema: 'caja'
 };
