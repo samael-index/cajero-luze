@@ -37,7 +37,7 @@ En la venta, cada producto se ve con **su foto arriba y el nombre debajo** (más
 - Solo el administrador cambia fotos. Se aceptan JPG, PNG y WebP de hasta 1 MB (el tipo se comprueba por el contenido del archivo).
 
 ## Compartir el stock con el sistema "Control de Stock"
-Ver [`INTEGRACION-STOCK.md`](INTEGRACION-STOCK.md): propuesta (aún no aplicada) para que la caja y su sistema actual usen el mismo stock.
+Ver [`INTEGRACION-STOCK.md`](INTEGRACION-STOCK.md): propuesta (aún no aplicada) para que la caja y el sistema actual compartan el mismo stock.
 
 ## Cargar productos
 - **Uno por uno:** Productos → AGREGAR PRODUCTO.
@@ -56,7 +56,7 @@ Ver [`INTEGRACION-STOCK.md`](INTEGRACION-STOCK.md): propuesta (aún no aplicada)
 5. Doble clic en **`iniciar-caja.bat`**: arranca el servidor y abre Edge en pantalla completa. La primera vez pide crear el administrador (nombre y PIN). El segundo dueño se agrega en Ajustes → Administradores.
 6. Para que arranque con la computadora, ponga un acceso directo a `iniciar-caja.bat` en `shell:startup`.
 
-> Los `.bat` no se pudieron probar en Windows desde el entorno donde se desarrolló; revíselos en la primera instalación.
+> Los `.bat` están pendientes de verificar en Windows: revíselos en la primera instalación.
 
 ## Ver stock y ventas desde otro lugar (nube: Supabase o Neon)
 **Cómo está pensado:** la base de datos **local** (en el portátil) es la que opera la caja, así que **vender no depende del wifi**. Un sincronizador, que corre dentro del mismo programa, sube los cambios a una base PostgreSQL en la nube cada 30 segundos. Si no hay internet, los cambios quedan **pendientes** en el portátil y se suben solos al volver la conexión (el indicador ☁ de la barra superior muestra "Al día", "Subiendo N cambios" o "Sin internet · N pendientes"). La nube es un **espejo de solo lectura**: se mira desde allí, pero no se vende ni se edita desde allí.
@@ -112,9 +112,9 @@ Carpeta `nube/`: una página **solo de lectura** (un archivo HTML, sin servidor)
 4. `nube/netlify.toml` agrega cabeceras de seguridad: la página no se puede incrustar en otros sitios, no la indexan los buscadores, y solo puede conectarse a `*.supabase.co`. La página se probó con esa misma política (`test-nube/dashboard.e2e.js`). Si usa un dominio propio en Supabase, cambie `https://*.supabase.co` en ese archivo.
 5. Después del primer despliegue, compruebe las cabeceras: `curl -I https://SU-SITIO.netlify.app` debe mostrar `content-security-policy` y `x-frame-options`. (La documentación de Netlify indica que el `netlify.toml` se lee desde el directorio base; si no aparecieran, verifique ese valor.)
 
-**Sobre el plan gratis de Netlify y el uso comercial:** las respuestas del personal de Netlify en su foro dicen que el plan gratis se puede usar en proyectos comerciales, pero el contrato ([Self-Serve Subscription Agreement](https://www.netlify.com/legal/self-serve-subscription-agreement/)) habla de uso "para los propósitos internos del negocio" y dice que el plan gratis se ofrece a discreción de Netlify y puede cambiar. Esta página la usan solo los dueños del negocio (uso interno), pero conviene leer los términos vigentes o pedir confirmación escrita al soporte antes de depender de ella.
+**Sobre el plan gratis de Netlify y el uso comercial:** el contrato ([Self-Serve Subscription Agreement](https://www.netlify.com/legal/self-serve-subscription-agreement/)) habla de uso "para los propósitos internos del negocio" y dice que el plan gratis se ofrece a discreción de Netlify y puede cambiar. Esta página la usan solo los dueños del negocio (uso interno); conviene leer los términos vigentes o pedir confirmación escrita al soporte antes de depender de ella.
 
-> Nota: esta página se probó contra un simulador de Supabase que ejecuta las consultas en PostgreSQL con los permisos reales (rol `authenticated` y claims del token), no contra un proyecto de Supabase de verdad. Al conectarla por primera vez, revise los pasos 1 a 5.
+> Nota: las pruebas ejecutan las consultas en PostgreSQL con los permisos reales (rol `authenticated` y claims del token), pero no contra un proyecto de Supabase real. Al conectarla por primera vez, revise los pasos 1 a 5.
 
 ### Importante
 - **No borre ni reemplace la base local con una copia vieja mientras la nube está activa**: los números de venta se repetirían y pisarían datos de la nube. Para empezar de cero, borre también las filas de la tienda en el esquema `caja`.

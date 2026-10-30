@@ -1,11 +1,11 @@
 -- =====================================================================================================
 -- PROPUESTA (NO APLICADA): compartir el stock entre la caja y el sistema "Control de Stock" de Velas Luze.
--- Es ADITIVA: no borra ni cambia nada de lo que ya existe, y su app actual sigue funcionando igual.
+-- Es ADITIVA: no borra ni cambia nada de lo que ya existe, y la app actual sigue funcionando igual.
 -- Probada contra una réplica local de la estructura real (server/test/shared.test.js).
 -- Se aplica en el SQL Editor de Supabase (o con una migración) SOLO cuando usted lo apruebe.
 -- =====================================================================================================
 
--- 1) Precio y foto por producto. Columnas opcionales: su app actual no las usa ni se rompe.
+-- 1) Precio y foto por producto. Columnas opcionales: la app actual no las usa ni se rompe.
 ALTER TABLE public.candles
   ADD COLUMN IF NOT EXISTS price      numeric CHECK (price IS NULL OR price >= 0),   -- precio de venta en pesos
   ADD COLUMN IF NOT EXISTS image_path text;                                           -- ruta de la foto en el bucket "productos"
@@ -29,7 +29,7 @@ REVOKE ALL ON public.caja_movimientos_aplicados FROM anon, authenticated;
 --    p_items = [{"candle_id": 7, "delta": -2, "tipo": "venta", "nota": "Venta N° 123"}, ...]
 --    delta negativo descuenta (venta); positivo suma (carga de mercancía, devolución, anulación).
 --    El stock nunca queda negativo: si se vendió más de lo que figuraba, queda en 0 y se anota cuántas faltaron.
---    Escribe en su historial (stock_movements) con el mismo formato que usa su app.
+--    Escribe en el historial (stock_movements) con el mismo formato que usa la app.
 CREATE OR REPLACE FUNCTION public.caja_aplicar_movimientos(p_clave text, p_items jsonb, p_usuario text DEFAULT 'caja')
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
