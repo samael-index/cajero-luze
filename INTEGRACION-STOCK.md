@@ -1,6 +1,6 @@
 # Compartir el stock entre la caja y "Control de Stock" (Velas Luze)
 
-**Estado: PROPUESTA. No se ha aplicado nada en el proyecto de Supabase de "Control de Stock".**
+**Estado: activo. `supabase/compartir-stock.sql` ya está aplicado en el proyecto de Supabase y la caja sincroniza el stock con Control de Stock.**
 Solo se **leyó** su estructura (tablas, reglas de acceso, conteos y 2 filas del historial).
 
 ## Lo que hay hoy en el proyecto

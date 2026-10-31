@@ -15,6 +15,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { createStockSync } = require('./stock-sync');
 
 const CURSOR_END = Number.MAX_SAFE_INTEGER;
 // Orden: primero las tablas de las que dependen las otras.
@@ -33,6 +34,7 @@ function createSync({ local, cloud, storeId, intervalMs = 30000, log = console }
   let timer = null;
   let schemaReady = false;
   const cloudSql = fs.readFileSync(path.join(__dirname, 'cloud-schema.sql'), 'utf8');
+  const stock = createStockSync({ local, storeId });
 
   async function cursor(tbl) {
     const { rows } = await local.query('SELECT last_x, last_id FROM sync_state WHERE tbl = $1', [tbl]);
@@ -89,6 +91,7 @@ function createSync({ local, cloud, storeId, intervalMs = 30000, log = console }
            ON CONFLICT (store_id) DO UPDATE SET name = EXCLUDED.name, stock_bajo = EXCLUDED.stock_bajo`, [storeId, cfg.name, cfg.stock_bajo]);
         for (const t of TABLES) await pushTable(c, t, xmin);
         await c.query('UPDATE caja.stores SET last_sync = now() WHERE store_id = $1', [storeId]);
+        await stock.run(c);   // stock compartido con "Control de Stock" (si la nube lo tiene preparado)
       } finally { c.release(); }
       await local.query('UPDATE sync_status SET last_ok = now(), last_error = NULL');
     } catch (e) {

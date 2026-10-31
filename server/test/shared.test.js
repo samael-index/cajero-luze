@@ -12,7 +12,7 @@ let pool;
 const SQL = fs.readFileSync(path.join(__dirname, '..', '..', 'supabase', 'compartir-stock.sql'), 'utf8');
 
 const replica = `
-DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS auth CASCADE; DROP SCHEMA IF EXISTS storage CASCADE;
+DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS auth CASCADE;
 CREATE SCHEMA public;
 CREATE SCHEMA auth;
 CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb ->> 'role' $$;
@@ -68,9 +68,9 @@ after(async () => { await pool.end(); });
 test('lo que ya existe sigue igual y su app sigue pudiendo leer, insertar y editar (las columnas nuevas son opcionales)', async () => {
   const antes = await como('authenticated', 'SELECT count(*)::int n FROM public.candles');
   assert.equal(antes[0].n, 2);
-  const nuevo = await como('authenticated', `INSERT INTO public.candles (name) VALUES ('Vela nueva') RETURNING id, price, image_path`);
-  assert.equal(nuevo[0].price, null); assert.equal(nuevo[0].image_path, null);
-  await como('authenticated', `UPDATE public.candles SET price = 6000, image_path = 'a.jpg' WHERE id = ${A} RETURNING id`);
+  const nuevo = await como('authenticated', `INSERT INTO public.candles (name) VALUES ('Vela nueva') RETURNING id, price`);
+  assert.equal(nuevo[0].price, null);
+  await como('authenticated', `UPDATE public.candles SET price = 6000 WHERE id = ${A} RETURNING id`);
   assert.equal((await como('authenticated', `SELECT count(*)::int n FROM public.stock_movements`))[0].n, 1);
   assert.equal((await como('anon', `SELECT count(*)::int n FROM public.candles`))[0].n, 0, 'sin sesión sigue sin ver nada');
 });
@@ -124,9 +124,3 @@ test('seguridad: ni la sesión de un usuario ni el visitante pueden llamar la fu
   }
 });
 
-test('el bucket de fotos se crea público y solo escriben usuarios con sesión', async () => {
-  const b = (await pool.query(`SELECT public FROM storage.buckets WHERE id = 'productos'`)).rows;
-  assert.equal(b.length, 1); assert.equal(b[0].public, true);
-  const pol = (await pool.query(`SELECT roles::text, cmd FROM pg_policies WHERE tablename = 'objects' AND policyname = 'productos_escribir'`)).rows;
-  assert.equal(pol.length, 1); assert.match(pol[0].roles, /authenticated/); assert.equal(pol[0].cmd, 'ALL');
-});

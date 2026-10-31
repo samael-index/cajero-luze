@@ -141,3 +141,18 @@ CREATE TABLE IF NOT EXISTS product_images (
   data       bytea NOT NULL CHECK (octet_length(data) BETWEEN 100 AND 1048576),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- ===== Stock compartido con "Control de Stock" (ver server/stock-sync.js) =====
+-- remote_id = id del producto en public.candles de la nube. Los productos sin remote_id son solo de la caja.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS remote_id bigint;
+CREATE UNIQUE INDEX IF NOT EXISTS products_remote_uq ON products (remote_id) WHERE remote_id IS NOT NULL;
+-- remote_pushed: ese movimiento de stock ya se aplicó en la nube (los anteriores a esta función cuentan como hechos).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                  WHERE table_schema = 'public' AND table_name = 'stock_moves' AND column_name = 'remote_pushed') THEN
+    ALTER TABLE stock_moves ADD COLUMN remote_pushed boolean NOT NULL DEFAULT false;
+    UPDATE stock_moves SET remote_pushed = true;
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS stock_moves_unpushed_idx ON stock_moves (id) WHERE NOT remote_pushed;

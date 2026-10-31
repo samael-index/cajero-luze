@@ -1,22 +1,15 @@
 -- =====================================================================================================
--- PROPUESTA (NO APLICADA): compartir el stock entre la caja y el sistema "Control de Stock" de Velas Luze.
+-- Stock compartido: compartir el stock entre la caja y el sistema "Control de Stock" de Velas Luze.
 -- Es ADITIVA: no borra ni cambia nada de lo que ya existe, y la app actual sigue funcionando igual.
 -- Probada contra una réplica local de la estructura real (server/test/shared.test.js).
 -- Se aplica en el SQL Editor de Supabase (o con una migración) SOLO cuando usted lo apruebe.
 -- =====================================================================================================
 
--- 1) Precio y foto por producto. Columnas opcionales: la app actual no las usa ni se rompe.
+-- 1) Precio por producto (la caja lo define). Columna opcional: la app actual no la usa ni se rompe.
 ALTER TABLE public.candles
-  ADD COLUMN IF NOT EXISTS price      numeric CHECK (price IS NULL OR price >= 0),   -- precio de venta en pesos
-  ADD COLUMN IF NOT EXISTS image_path text;                                           -- ruta de la foto en el bucket "productos"
+  ADD COLUMN IF NOT EXISTS price numeric CHECK (price IS NULL OR price >= 0);   -- precio de venta en pesos
 
--- 2) Bucket de fotos (lectura pública para poder mostrarlas con un enlace; solo usuarios con sesión las cambian)
-INSERT INTO storage.buckets (id, name, public) VALUES ('productos', 'productos', true) ON CONFLICT (id) DO NOTHING;
-DROP POLICY IF EXISTS productos_escribir ON storage.objects;
-CREATE POLICY productos_escribir ON storage.objects FOR ALL TO authenticated
-  USING (bucket_id = 'productos') WITH CHECK (bucket_id = 'productos');
-
--- 3) Registro de lo que la caja ya aplicó (para no descontar dos veces la misma venta si reintenta tras un corte)
+-- 2) Registro de lo que la caja ya aplicó (para no descontar dos veces la misma venta si reintenta tras un corte)
 CREATE TABLE IF NOT EXISTS public.caja_movimientos_aplicados (
   clave       text PRIMARY KEY,                       -- ej. "<tienda>:venta:123"
   aplicado_en timestamptz NOT NULL DEFAULT now(),
@@ -25,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.caja_movimientos_aplicados (
 ALTER TABLE public.caja_movimientos_aplicados ENABLE ROW LEVEL SECURITY;   -- sin políticas: la API pública no la toca
 REVOKE ALL ON public.caja_movimientos_aplicados FROM anon, authenticated;
 
--- 4) Una sola función, atómica e idempotente, para mover el stock desde la caja.
+-- 3) Una sola función, atómica e idempotente, para mover el stock desde la caja.
 --    p_items = [{"candle_id": 7, "delta": -2, "tipo": "venta", "nota": "Venta N° 123"}, ...]
 --    delta negativo descuenta (venta); positivo suma (carga de mercancía, devolución, anulación).
 --    El stock nunca queda negativo: si se vendió más de lo que figuraba, queda en 0 y se anota cuántas faltaron.
