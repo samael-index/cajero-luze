@@ -7,6 +7,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
+    "fotos": "node --env-file-if-exists=.env server/cargar-fotos.js",
     "test": "node --test server/test/api.test.js server/test/sync.test.js server/test/rls.test.js server/test/shared.test.js server/test/stock-sync.test.js"
   },
   "engines": {
