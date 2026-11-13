@@ -138,3 +138,41 @@ test('cada tienda queda separada y se ve cuándo fue la última sincronización'
   assert.equal((await api('POST', '/api/sync/run', {})).status, 200);
   assert.ok(!JSON.stringify((await api('GET', '/api/bootstrap', undefined, null)).data).includes(storeId), 'el id de la tienda no se expone');
 });
+
+test('reiniciar la caja: borra ventas y dinero aquí y en la nube, y deja productos y stock', async () => {
+  await api('POST', '/api/cash/count', { counted: 5000 }, null);
+  await sync.run();
+  assert.ok((await cloudCount('sales')) > 0 && (await cloudCount('cash_moves')) > 0 && (await cloudCount('cash_counts')) > 0);
+  const stockAntes = (await one(local, `SELECT stock FROM products WHERE id=$1`, [pan.id])).stock;
+  const prodsNube = await cloudCount('products');
+  const movsNube = await cloudCount('stock_moves');
+
+  assert.equal((await api('POST', '/api/reset', { pin: '4321' }, null)).status, 401, 'sin administrador no');
+  assert.equal((await api('POST', '/api/reset', { pin: '0000' })).status, 401, 'con PIN equivocado no');
+  assert.ok((await one(local, 'SELECT count(*)::int n FROM sales')).n > 0);
+
+  sync.useCloud(deadCloud);                                   // se reinicia sin internet
+  const r = await api('POST', '/api/reset', { pin: '4321' });
+  assert.equal(r.status, 200); assert.ok(r.data.borrado.sales > 0);
+  for (const t of ['sales', 'sale_items', 'cash_moves', 'cash_counts']) assert.equal((await one(local, `SELECT count(*)::int n FROM ${t}`)).n, 0, t);
+  const cash = (await api('GET', '/api/cash/state', undefined, null)).data;
+  assert.equal(cash.en_caja, 0);
+  assert.equal((await one(local, `SELECT stock FROM products WHERE id=$1`, [pan.id])).stock, stockAntes, 'el stock no cambia');
+  assert.ok(!('reinicio' in (await api('GET', '/api/bootstrap', undefined, null)).data.settings));
+  await sync.run();
+  assert.ok((await cloudCount('sales')) > 0, 'sin internet la nube aún no se entera');
+
+  const nueva = await sell([{ product_id: pan.id, qty: 1 }]);  // venta real después del reinicio
+  assert.equal(nueva.status, 200);
+  sync.useCloud(cloud);
+  await sync.run();
+  assert.equal((await sync.status()).last_error, null);
+  assert.equal(await cloudCount('sales'), 1, 'en la nube solo queda la venta nueva');
+  assert.equal(await cloudCount('sale_items'), 1);
+  assert.equal(await cloudCount('cash_moves'), 0); assert.equal(await cloudCount('cash_counts'), 0);
+  assert.equal(await cloudCount('products'), prodsNube);
+  assert.ok((await cloudCount('stock_moves')) >= movsNube, 'el historial de stock se conserva');
+  assert.equal((await q(local, `SELECT 1 FROM settings WHERE key='reinicio'`)).length, 0);
+  await sync.run();
+  assert.equal(await cloudCount('sales'), 1, 'repetir la sincronización no borra la venta nueva');
+});

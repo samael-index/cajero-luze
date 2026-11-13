@@ -67,6 +67,8 @@ function parsePesos(v) {
   return Math.round(parseFloat(s.replace(/\./g, '').replace(',', '.'))) || 0;
 }
 
+const RESET_TABLES = ['sale_items', 'sales', 'cash_moves', 'cash_counts'];
+
 function createApp({ pool, publicDir, sync }) {
   const app = express();
   app.disable('x-powered-by');
@@ -84,7 +86,7 @@ function createApp({ pool, publicDir, sync }) {
 
   /* ---------- configuración ---------- */
   async function getSettings(db = pool) {
-    const { rows } = await db.query(`SELECT key, value FROM settings WHERE key <> 'store_id'`);
+    const { rows } = await db.query(`SELECT key, value FROM settings WHERE key NOT IN ('store_id', 'reinicio')`);
     const s = { ...DEFAULT_SETTINGS };
     for (const r of rows) s[r.key] = r.value;
     return s;
@@ -695,6 +697,31 @@ function createApp({ pool, publicDir, sync }) {
     out.admins = (await pool.query('SELECT id, name, created_at FROM admins ORDER BY id')).rows; // sin PIN
     res.set({ 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="caja-copia-${new Date().toISOString().slice(0, 10)}.json"` });
     res.send(JSON.stringify(out));
+  }));
+
+  /* ---------- reiniciar la caja: borra ventas y dinero; deja productos, stock, fotos, administradores y ajustes ---------- */
+  app.post('/api/reset', requireAdmin, wrap(async (req, res) => {
+    const pin = String(req.body.pin ?? '');
+    const { rows } = await pool.query('SELECT pin_hash FROM admins WHERE id = $1', [req.admin.id]);
+    if (!rows[0] || !/^\d{4,8}$/.test(pin) || !checkPin(pin, rows[0].pin_hash)) throw new HttpError(401, 'pin_incorrecto', 'PIN incorrecto');
+    const c = await pool.connect();
+    try {
+      await c.query('BEGIN');
+      await c.query('LOCK TABLE sales, sale_items, cash_moves, cash_counts IN ACCESS EXCLUSIVE MODE');   // ninguna venta a medias
+      const prev = (await c.query(`SELECT value FROM settings WHERE key = 'reinicio'`)).rows[0]?.value || {};
+      const hasta = {}, borrado = {};
+      for (const t of RESET_TABLES) {
+        const { rows: [r] } = await c.query(`SELECT coalesce(max(id), 0) AS m, count(*)::int AS n FROM ${t}`);
+        hasta[t] = Math.max(r.m, Number(prev[t]) || 0);
+        borrado[t] = r.n;
+      }
+      for (const t of RESET_TABLES) await c.query(`DELETE FROM ${t}`);
+      // La nube borra hasta estos números en la próxima sincronización (ver server/sync.js).
+      await c.query(`INSERT INTO settings(key, value) VALUES ('reinicio', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [JSON.stringify(hasta)]);
+      await c.query('COMMIT');
+      res.json({ ok: true, borrado });
+    } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; } finally { c.release(); }
+    if (sync && sync.enabled()) sync.run().catch(() => {});
   }));
 
   /* ---------- sincronización con la nube ---------- */

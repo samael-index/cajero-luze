@@ -614,7 +614,10 @@ function vAjustes(){
       <button class="btn blue sm" data-act="syncnow">🔄 Sincronizar ahora</button></div>`:`<div class="card"><h3>☁ Copia en la nube</h3><p class="muted">No está activada. Para ver el stock y las ventas desde otro lugar, configure CLOUD_DATABASE_URL (ver README).</p></div>`}
     <div class="card"><h3>Copia de seguridad</h3>
       <p class="muted" style="margin-bottom:10px">Todo se guarda en la base de datos PostgreSQL. La copia principal se hace con el respaldo de la base de datos (ver README). Aquí puede además descargar una copia legible de todo (productos, ventas, caja).</p>
-      <button class="btn ok sm" data-act="backup">💾 Descargar copia (JSON)</button></div></div>`;
+      <button class="btn ok sm" data-act="backup">💾 Descargar copia (JSON)</button></div>
+    <div class="card"><h3>Reiniciar la caja</h3>
+      <p class="muted" style="margin-bottom:10px">Borra todas las ventas, el dinero en caja, los retiros y los conteos, y deja la caja en $0. No toca los productos, el stock, las fotos, los administradores ni estos ajustes. Sirve para limpiar los registros de prueba. No se puede deshacer.</p>
+      <button class="btn bad sm" data-act="reiniciar">🗑 Reiniciar la caja</button></div></div>`;
 }
 
 /* =====================  ACCIONES  ===================== */
@@ -993,7 +996,16 @@ const act={
     S.sync=await adm(()=>api('POST','/api/sync/run',{}))||S.sync;
     render();toast(S.sync.last_error?'No hay conexión con la nube todavía':'Listo: todo subido ✔');
   },
-  backup(){return downloadBlob('/api/backup','caja-copia.json').then(()=>toast('Copia descargada ✔'))}
+  backup(){return downloadBlob('/api/backup','caja-copia.json').then(()=>toast('Copia descargada ✔'))},
+  async reiniciar(){
+    if(!await confirmBox({title:'¿Reiniciar la caja?',text:'Se borran TODAS las ventas, el dinero en caja, los retiros y los conteos. Los productos, el stock y las fotos quedan igual. Antes se descarga una copia. No se puede deshacer.',ok:'SÍ, BORRAR TODO',danger:true}))return;
+    const pin=await pinPad({title:'Su PIN para confirmar'});if(!pin)return;
+    await downloadBlob('/api/backup','caja-antes-de-reiniciar.json');
+    const r=await api('POST','/api/reset',{pin});
+    ui.cart=[];ui.rep=null;ui.cash=null;ui.moves=[];
+    await boot();render();
+    toast(`Caja reiniciada ✔ (${r.borrado.sales} ventas borradas)`);
+  }
 };
 async function saveSetting(patch){
   S.settings=await api('PUT','/api/settings',patch);render();toast('Guardado ✔');

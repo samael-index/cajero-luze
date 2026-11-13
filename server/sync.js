@@ -75,6 +75,22 @@ function createSync({ local, cloud, storeId, intervalMs = 30000, log = console }
     await saveCursor(t.name, xmin - 1, CURSOR_END);
   }
 
+  // Si la caja se reinició (POST /api/reset), borra del espejo lo mismo que se borró aquí.
+  // Las ventas posteriores al reinicio tienen números mayores, así que no se tocan.
+  async function applyReset(c) {
+    const { rows } = await local.query(`SELECT value FROM settings WHERE key = 'reinicio'`);
+    if (!rows[0]) return;
+    const hasta = rows[0].value;
+    await c.query('BEGIN');
+    try {
+      for (const t of ['sale_items', 'sales', 'cash_moves', 'cash_counts']) {
+        await c.query(`DELETE FROM caja.${t} WHERE store_id = $1 AND id <= $2`, [storeId, Number(hasta[t]) || 0]);
+      }
+      await c.query('COMMIT');
+    } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; }
+    await local.query(`DELETE FROM settings WHERE key = 'reinicio' AND value = $1::jsonb`, [JSON.stringify(hasta)]);
+  }
+
   async function runOnce() {
     if (!cloud) return;
     await local.query('UPDATE sync_status SET last_try = now()');
@@ -89,6 +105,7 @@ function createSync({ local, cloud, storeId, intervalMs = 30000, log = console }
         await c.query(
           `INSERT INTO caja.stores (store_id, name, stock_bajo) VALUES ($1,$2,$3)
            ON CONFLICT (store_id) DO UPDATE SET name = EXCLUDED.name, stock_bajo = EXCLUDED.stock_bajo`, [storeId, cfg.name, cfg.stock_bajo]);
+        await applyReset(c);
         for (const t of TABLES) await pushTable(c, t, xmin);
         await c.query('UPDATE caja.stores SET last_sync = now() WHERE store_id = $1', [storeId]);
         await stock.run(c);   // stock compartido con "Control de Stock" (si la nube lo tiene preparado)
